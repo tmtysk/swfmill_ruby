@@ -1,0 +1,42 @@
+SwfmillRuby
+===========
+
+SwfmillRuby is a utility-classes to use Swfmill(http://swfmill.org) via Ruby.
+This library is assumed to use to fiddle with the SWF published as FlashLite 1.1 - most popular version among mobile phone in Japan.
+
+* features
+  * SwfmillUtil::Swfmill
+    * calling swfmill-program(xml2swf, swf2xml) from ruby.
+  * SwfmillUtil::Swf
+    * accessing to images(Magick::Image) included in Swf. (Swf#images)
+    * replacing images and texts included in Swf.
+      * supported tags: DefineBitsLossless2, DefineBitsJPEG2 and DefineEditText.
+      * converting DefineBitsLossless2, DefineBitsJPEG2 <=> Magick::Image
+    * writing out re-generated Swf. (Swf#write)
+
+Requirements
+============
+
+ * swfmill 0.2.12
+   - patched supporting CP932 encoding
+     http://dsas.blog.klab.org/archives/51174693.html
+ * ImageMagick 6.3.7 or greater
+ * rubygems and rmagick(2.8.0 or greater) library
+
+Usage
+=====
+
+First, Set constant SWFMILL in lib/swfmill.rb to path to swfmill-program for your environment.
+
+Then, see sample/*.rb files or http://github.com/tmtysk
+
+Thanks
+======
+
+* http://swfmill.org/
+* Great patch-program for swfmill provided by KLab,Inc.
+* Sample GIF image is provided by ICHIGO-APORO.
+
+Copyright (c) 2008 tmtysk.
+    released under the GNU GENERAL PUBLIC LICENSE Version 2.
+    See COPYING for details.
