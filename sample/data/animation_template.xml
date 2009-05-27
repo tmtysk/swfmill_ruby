@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ClippedSprite>
+  <DefineBitsLossless2 objectID="1000" format="3" width="30" height="30" n_colormap="7">
+        <data>
+          <data>eNq9kkEOwyAMBIlZbvn/Lb/qZ3pyAcfYScC9VF0FoWi8i41grnofzCnx/trrltpK585FBFWZC1m05FU58PeIAH7lYXv99N7etEThWTIdDvqNLuDsMGmA5SBf/BKAmAM0CnBXx0SDb1dBsOOwErQ/wUtO5O3P/DmHpihH7KflfDe/C1Gr2RHKDtcH2u7X3ZT5Hf+lv0yGLH/UB7Y3HQE=</data>
+        </data>
+      </DefineBitsLossless2>
+  <DefineShape objectID="1001">
+        <bounds>
+          <Rectangle left="-300" right="300" top="-300" bottom="300"/>
+        </bounds>
+        <styles>
+          <StyleList>
+            <fillStyles>
+              <ClippedBitmap objectID="65535">
+                <matrix>
+                  <Transform scaleX="20.00000000000000" scaleY="20.00000000000000" transX="0" transY="0"/>
+                </matrix>
+              </ClippedBitmap>
+              <ClippedBitmap objectID="1000">
+                <matrix>
+                  <Transform scaleX="20.00000000000000" scaleY="20.00000000000000" transX="-300" transY="-300"/>
+                </matrix>
+              </ClippedBitmap>
+            </fillStyles>
+            <lineStyles/>
+          </StyleList>
+        </styles>
+        <shapes>
+          <Shape>
+            <edges>
+              <ShapeSetup x="-300" y="-300" fillStyle1="2"/>
+              <LineTo x="600" y="0"/>
+              <LineTo x="0" y="600"/>
+              <LineTo x="-600" y="0"/>
+              <LineTo x="0" y="-600"/>
+              <ShapeSetup/>
+            </edges>
+          </Shape>
+        </shapes>
+      </DefineShape>
+  <DefineSprite objectID="5" frames="20">
+        <tags>
+          <PlaceObject2 replace="0" depth="1" objectID="1001">
+            <transform>
+              <Transform transX="300" transY="300"/>
+            </transform>
+          </PlaceObject2>
+          <ShowFrame/>
+          <PlaceObject2 replace="1" depth="1">
+            <transform>
+              <Transform transX="68" transY="226"/>
+            </transform>
+          </PlaceObject2>
+          <ShowFrame/>
+          <PlaceObject2 replace="1" depth="1">
+            <transform>
+              <Transform transX="-164" transY="152"/>
+            </transform>
+          </PlaceObject2>
+          <ShowFrame/>
+          <PlaceObject2 replace="1" depth="1">
+            <transform>
+              <Transform transX="-396" transY="78"/>
+            </transform>
+          </PlaceObject2>
+          <ShowFrame/>
+          <PlaceObject2 replace="1" depth="1">
+            <transform>
+              <Transform transX="-628" transY="4"/>
+            </transform>
+          </PlaceObject2>
+          <ShowFrame/>
+          <PlaceObject2 replace="1" depth="1">
+            <transform>
+              <Transform transX="-860" transY="-70"/>
+            </transform>
+          </PlaceObject2>
+          <ShowFrame/>
+          <PlaceObject2 replace="1" depth="1">
+            <transform>
+              <Transform transX="-1092" transY="-144"/>
+            </transform>
+          </PlaceObject2>
+          <ShowFrame/>
+          <PlaceObject2 replace="1" depth="1">
+            <transform>
+              <Transform transX="-1324" transY="-218"/>
+            </transform>
+          </PlaceObject2>
+          <ShowFrame/>
+          <PlaceObject2 replace="1" depth="1">
+            <transform>
+              <Transform transX="-1556" transY="-292"/>
+            </transform>
+          </PlaceObject2>
+          <ShowFrame/>
+          <PlaceObject2 replace="1" depth="1">
+            <transform>
+              <Transform transX="-1788" transY="-366"/>
+            </transform>
+          </PlaceObject2>
+          <ShowFrame/>
+          <PlaceObject2 replace="1" depth="1">
+            <transform>
+              <Transform transX="-2020" transY="-440"/>
+            </transform>
+          </PlaceObject2>
+          <ShowFrame/>
+          <PlaceObject2 replace="1" depth="1">
+            <transform>
+              <Transform transX="-2284" transY="-260"/>
+            </transform>
+          </PlaceObject2>
+          <ShowFrame/>
+          <PlaceObject2 replace="1" depth="1">
+            <transform>
+              <Transform transX="-2549" transY="-80"/>
+            </transform>
+          </PlaceObject2>
+          <ShowFrame/>
+          <PlaceObject2 replace="1" depth="1">
+            <transform>
+              <Transform transX="-2813" transY="100"/>
+            </transform>
+          </PlaceObject2>
+          <ShowFrame/>
+          <PlaceObject2 replace="1" depth="1">
+            <transform>
+              <Transform transX="-3078" transY="280"/>
+            </transform>
+          </PlaceObject2>
+          <ShowFrame/>
+          <PlaceObject2 replace="1" depth="1">
+            <transform>
+              <Transform transX="-3342" transY="460"/>
+            </transform>
+          </PlaceObject2>
+          <ShowFrame/>
+          <PlaceObject2 replace="1" depth="1">
+            <transform>
+              <Transform transX="-3607" transY="640"/>
+            </transform>
+          </PlaceObject2>
+          <ShowFrame/>
+          <PlaceObject2 replace="1" depth="1">
+            <transform>
+              <Transform transX="-3871" transY="820"/>
+            </transform>
+          </PlaceObject2>
+          <ShowFrame/>
+          <PlaceObject2 replace="1" depth="1">
+            <transform>
+              <Transform transX="-4136" transY="1000"/>
+            </transform>
+          </PlaceObject2>
+          <ShowFrame/>
+          <PlaceObject2 replace="1" depth="1">
+            <transform>
+              <Transform transX="-4400" transY="1180"/>
+            </transform>
+          </PlaceObject2>
+          <ShowFrame/>
+          <End/>
+        </tags>
+      </DefineSprite>
+</ClippedSprite>

@@ -1,6 +1,6 @@
 module SwfmillUtil
 
-  SWFMILL = "/Users/tmtysk/bin/swfmill"
+  SWFMILL = "/usr/local/bin/swfmill"
 
   class Swfmill
 

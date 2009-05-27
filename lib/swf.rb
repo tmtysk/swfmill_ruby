@@ -1,162 +1,315 @@
 module SwfmillUtil
 
-  class Swf
+  class DefineSprite
 
-    attr_accessor :images, :texts
+    attr_accessor :images, :texts, :movieclips
+    attr_reader :xmldoc
+    private_class_method :new
 
-    def initialize(swf)
+    def self.parseXml(xml, template_mode = false)
+      new(nil, xml, template_mode)
+    end
+
+    def initialize(swf, xml, template_mode)
       @swf = swf
-      @xml = Swfmill.swf2xml(swf)
-      @rexml = REXML::Document.new(@xml)
+      @xml = xml
+      @xmldoc = LibXML::XML::Document.string(@xml)
       @images = {}
-      @rexml.root.each_element('//DefineBitsLossless2') { |e| @images[e.attributes['objectID']] = DefineBitsLossless2.xml2image(e) }
-      @rexml.root.each_element('//DefineBitsJPEG2') { |e| @images[e.attributes['objectID']] = DefineBitsJPEG2.xml2image(e) }
       @texts = {}
-      @rexml.root.each_element('//DefineEditText') { |e| @texts[e.attributes['objectID']] = e.attributes['initialText'] }
+      @movieclips = {}
+      read_swf_structure unless template_mode
+      def @images.[]=(k,v); super; self[k].taint; end
+      def @texts.[]=(k,v); super; self[k].taint; end
+      def @movieclips.[]=(k,v); super; self[k].taint; end
     end
 
-    def regenerate
-      # replace image element
-      @images.each do |object_id,image|
-        image_node = REXML::XPath.first(@rexml.root, "//DefineBitsLossless2[@objectID='#{object_id}']") || REXML::XPath.first(@rexml.root, "//DefineBitsJPEG2[@objectID='#{object_id}']")
-        if image_node then
-          if image.format == 'JPEG' then
-            image_node.parent.replace_child(image_node, DefineBitsJPEG2.image2xml(object_id, image))
-          else
-            image_node.parent.replace_child(image_node, DefineBitsLossless2.image2xml(object_id, image))
+    def read_swf_structure
+      @xmldoc.find('.//DefineBitsLossless2').each { |n| @images[n.attributes['objectID']] = DefineBitsLossless2.xml2image(n) }
+      @xmldoc.find('.//DefineBitsJPEG2').each { |n| @images[n.attributes['objectID']] = DefineBitsJPEG2.xml2image(n) }
+      @xmldoc.find('.//DefineEditText').each { |n| @texts[n.attributes['objectID']] = n.attributes['initialText'] }
+
+      @referred_place_object = Hash.new do |hash,object_id|
+        xml = ""
+        # pickup referred DefineShape
+        @xmldoc.find(".//*[self::DefineShape[@objectID='#{object_id}'] or self::DefineShape2[@objectID='#{object_id}']]").each do |e1|
+          # pickup referred ClippedBitmap 
+          e1.find('.//ClippedBitmap[@objectID]').each do |e2|
+            # pickup referred DefineBitsLossless2 and DefineBitsJPEG2
+            @xmldoc.find(".//*[self::DefineBitsLossless2[@objectID='#{e2.attributes['objectID']}'] or self::DefineBitsJPEG2[@objectID='#{e2.attributes['objectID']}']]").each do |e3|
+              xml << e3.to_s
+            end
           end
+          xml << e1.to_s
+        end
+        # pickup referred DefineEditText
+        @xmldoc.find(".//DefineEditText[@objectID='#{object_id}']").each do |e|
+          xml << e.to_s
+        end
+        # pickup referred PlaceSprite(Recursive)
+        inserted = {}
+        @xmldoc.find(".//DefineSprite[@objectID='#{object_id}']").each do |e|
+          e.find('.//PlaceObject2[@objectID]').each do |re|
+            unless inserted[re.attributes['objectID']] then
+              xml << @referred_place_object[re.attributes['objectID']]
+              inserted[re.attributes['objectID']] = true
+            end
+          end
+          xml << e.to_s
+        end
+        hash[object_id] = xml
+      end
+
+      @xmldoc.find('.//DefineSprite').each do |e|
+        next if e.parent.name == 'ClippedSprite'
+        # pickup referred PlaceObject
+        inserted = {}
+        sprite_xml = ""
+        e.find('.//PlaceObject2[@objectID]').each do |re|
+          #sprite_xml << referred_place_object(re.attributes['objectID'])
+          unless inserted[re.attributes['objectID']] then
+            sprite_xml << @referred_place_object[re.attributes['objectID']]
+            inserted[re.attributes['objectID']] = true
+          end
+        end
+        sprite_xml << e.to_s
+        @movieclips[e.attributes['objectID']] = DefineSprite.parseXml("<ClippedSprite>#{sprite_xml}</ClippedSprite>")
+      end
+    end
+
+    def movieclip_ids_named(name)
+      es = @xmldoc.find(".//PlaceObject2[@name='#{name}']")
+      es.collect { |e| e.attributes['objectID'] }
+    end
+
+    def templatize(adjustment = false, root_define_sprite_id_from = 0, root_define_sprite_id_to = 0, available_id_from = 0)
+      if adjustment then
+        # reset id_map for adjustment each movieclip
+        object_id_map = {}
+        # adjust object_id refering in movieclip
+        @xmldoc.root.children.each do |e|
+          xpath_axes = "//"
+          # making object_id_map
+          if e.name == "DefineSprite" && e.attributes['objectID'] == root_define_sprite_id_from.to_s then
+            # inherit original object_id 
+            #object_id_map[e.attributes['objectID']] = root_define_sprite_id_to.to_s
+            e.attributes['objectID'] = root_define_sprite_id_to.to_s
+            xpath_axes = ".//"
+          else
+            object_id_map[e.attributes['objectID']] = available_id_from.to_s unless object_id_map[e.attributes['objectID']]
+            e.attributes['objectID'] = object_id_map[e.attributes['objectID']]
+            available_id_from += 1
+          end
+          # adjustment!
+          object_id_map.each do |from,to|
+            e.find("#{xpath_axes}*[@objectID='#{from}']").each do |ae|
+              ae.attributes['objectID'] = to
+            end
+          end
+        end
+      end
+      @xmldoc.to_s
+    end
+  end
+
+  class DefineBitsJPEG2
+    def self.xml2image(node)
+      data = Base64.decode64(node.find_first('data/data').content)
+      Magick::Image.from_blob(data[4..-1]).first
+    end
+
+    def self.image2xml(object_id, image)
+      node = LibXML::XML::Node.new("DefineBitsJPEG2")
+      node.attributes['objectID'] = object_id.to_s
+      data1 = LibXML::XML::Node.new('data')
+      data2 = LibXML::XML::Node.new('data', Base64.encode64([0xff, 0xd9, 0xff, 0xd8].pack("C*") + image.to_blob).gsub("\n",""))
+      data1 << data2
+      node << data1
+      node
+    end
+  end
+
+  class DefineBitsLossless2
+    ShiftDepth = Magick::QuantumDepth - 8
+    MaxRGB = 2 ** Magick::QuantumDepth - 1
+
+    def self.image2xml(object_id, image)
+      node = LibXML::XML::Node.new("DefineBitsLossless2")
+      node.attributes['objectID'] = object_id.to_s
+
+      colormap = []
+      data = ""
+      image.get_pixels(0, 0, image.columns, image.rows).each_with_index do |pixel,i|
+        idx = colormap.index(pixel)
+        if idx then
+          data << [idx].pack("C")
         else
-          raise ReplaceTargetNotFoundError
+          colormap << pixel
+          data << [colormap.length-1].pack("C")
+        end
+        if (i+1) % image.rows == 0 then
+          # padding
+          data += [0].pack("C") * (4-(image.rows%4))
         end
       end
-      # replace text
-      @texts.each do |object_id,text|
-        text_node = REXML::XPath.first(@rexml.root, "//DefineEditText[@objectID='#{object_id}']") 
-        if text_node then
-          text_node.attributes['initialText'] = text
+      data = colormap.inject("") { |r,c|
+        opacity = (MaxRGB-c.opacity) >> ShiftDepth
+        if opacity == 0 then
+          r += 
+            [0].pack("C") +
+            [0].pack("C") +
+            [0].pack("C") +
+            [opacity].pack("C")
         else
-          raise ReplaceTargetNotFoundError
+          r += 
+            [c.red >> ShiftDepth].pack("C") +
+            [c.green >> ShiftDepth].pack("C") +
+            [c.blue >> ShiftDepth].pack("C") +
+            [opacity].pack("C")
         end
-      end
-      Swfmill.xml2swf(@rexml.to_s)
+      } + data
+
+      node.attributes['format'] = '3'
+      node.attributes['width'] = image.columns.to_s
+      node.attributes['height'] = image.rows.to_s
+      node.attributes['n_colormap'] = (colormap.length-1).to_s
+      data1 = LibXML::XML::Node.new('data')
+      data2 = LibXML::XML::Node.new('data', Base64.encode64(Zlib::Deflate.deflate(data)).gsub("\n",""))
+      data1 << data2
+      node << data1
+      node
     end
 
-    def write(filename)
-      File.open(filename, 'w') do |f|
-        f.write regenerate
-      end
-    end
-
-    class DefineBitsJPEG2
-      def self.xml2image(element)
-        data = Base64.decode64(element.get_elements('data/data').first.text)
-        Magick::Image.from_blob(data[4..-1]).first
-      end
-
-      def self.image2xml(object_id, image)
-        element = REXML::Element.new("DefineBitsJPEG2")
-        element.add_attribute('objectID', object_id.to_s)
-        data1 = element.add_element('data')
-        data2 = data1.add_element('data')
-        data2.text = Base64.encode64([0xff, 0xd9, 0xff, 0xd8].pack("C*") + image.to_blob).gsub("\n","")
-        element
-      end
-    end
-
-    class DefineBitsLossless2
-
-      ShiftDepth = Magick::QuantumDepth - 8
-      MaxRGB = 2 ** Magick::QuantumDepth - 1
-
-      def self.image2xml(object_id, image)
-        element = REXML::Element.new("DefineBitsLossless2")
-        element.add_attribute('objectID', object_id.to_s)
-        data1 = element.add_element('data')
-        data2 = data1.add_element('data')
-
-        colormap = []
-        data = ""
-        image.get_pixels(0, 0, image.columns, image.rows).each_with_index do |pixel,i|
-          idx = colormap.index(pixel)
-          if idx then
-            data << [idx].pack("C")
-          else
-            colormap << pixel
-            data << [colormap.length-1].pack("C")
-          end
-          if (i+1) % image.rows == 0 then
-            # padding
-            data += [0].pack("C") * (4-(image.rows%4))
-          end
-        end
-        data = colormap.inject("") { |r,c|
-          opacity = (MaxRGB-c.opacity) >> ShiftDepth
-          if opacity == 0 then
-            r += 
-              [0].pack("C") +
-              [0].pack("C") +
-              [0].pack("C") +
-              [opacity].pack("C")
-          else
-            r += 
-              [c.red >> ShiftDepth].pack("C") +
-              [c.green >> ShiftDepth].pack("C") +
-              [c.blue >> ShiftDepth].pack("C") +
-              [opacity].pack("C")
-          end
-        } + data
-
-        element.add_attribute('format', '3')
-        element.add_attribute('width', image.columns.to_s)
-        element.add_attribute('height', image.rows.to_s)
-        element.add_attribute('n_colormap', (colormap.length-1).to_s)
-        data2.text = Base64.encode64(Zlib::Deflate.deflate(data)).gsub("\n","")
-        element
-      end
-
-      def self.xml2image(element)
-        raise if element.attributes['format'] != "3"
-        head = 0
-        width = element.attributes['width'].to_i
-        height = element.attributes['height'].to_i
-        data = Zlib::Inflate.inflate(Base64.decode64(element.get_elements('data/data').first.text))
-        # ready to make colormap
-        colormap = []
-        (element.attributes['n_colormap'].to_i + 1).times do |i|
-          colormap[i] = {
+    def self.xml2image(node)
+      raise if node.attributes['format'] != "3"
+      head = 0
+      width = node.attributes['width'].to_i
+      height = node.attributes['height'].to_i
+      data = Zlib::Inflate.inflate(Base64.decode64(node.find_first('data/data').content))
+      # ready to make colormap
+      colormap = []
+      (node.attributes['n_colormap'].to_i + 1).times do |i|
+        colormap[i] = {
           'r' => data[head,1].unpack("C").first << ShiftDepth,
           'g' => data[head+1,1].unpack("C").first << ShiftDepth,
           'b' => data[head+2,1].unpack("C").first << ShiftDepth,
           'a' => MaxRGB - (data[head+3,1].unpack("C").first << ShiftDepth)
-          }
-          head += 4
-        end
-        # making pixels
-        pixels = []
-        height.times do |h|
-          width.times do |w|
-            mapidx = data[head,1].unpack("C*").first
-            pixels << Magick::Pixel.new(
-              colormap[mapidx]['r'],
-              colormap[mapidx]['g'],
-              colormap[mapidx]['b'],
-              colormap[mapidx]['a']
-            )
-            head += 1
-          end
-          head += (4-(width%4))
-        end
-        # making image
-        image = Magick::Image.new(width, height) {
-          self.colorspace = Magick::RGBColorspace
-          self.compression = Magick::NoCompression
-          self.background_color = "transparent"
         }
-        image.store_pixels(0, 0, width, height, pixels)
+        head += 4
       end
+      # making pixels
+      pixels = []
+      height.times do |h|
+        width.times do |w|
+          mapidx = data[head,1].unpack("C*").first
+          pixels << Magick::Pixel.new(
+            colormap[mapidx]['r'],
+            colormap[mapidx]['g'],
+            colormap[mapidx]['b'],
+            colormap[mapidx]['a']
+          )
+          head += 1
+        end
+        head += (4-(width%4))
+      end
+      # making image
+      image = Magick::Image.new(width, height) {
+        self.colorspace = Magick::RGBColorspace
+        self.compression = Magick::NoCompression
+        self.background_color = "transparent"
+      }
+      image.store_pixels(0, 0, width, height, pixels)
+    end
+  end
+
+  class Swf < DefineSprite
+
+    def self.parseSwf(swf)
+      new(swf, Swfmill.swf2xml(swf), false)
     end
 
-    class ReplaceTargetNotFoundError < StandardError; end
+    def regenerate(adjustment)
+      # replace image element
+      @images.each do |object_id, image|
+        if @images[object_id].tainted? then
+          image_node = @xmldoc.find_first(".//*[self::DefineBitsLossless2[@objectID='#{object_id}'] or self::DefineBitsJPEG2[@objectID='#{object_id}']]")
+          if image_node then
+            if image.format == 'JPEG' then
+              image_node.prev = DefineBitsJPEG2.image2xml(object_id, image)
+              image_node.remove!
+            else
+              image_node.prev = DefineBitsLossless2.image2xml(object_id, image)
+              image_node.remove!
+            end
+          else
+            raise ReplaceTargetNotFoundError
+          end
+        end
+      end
+      # replace text
+      @texts.each do |object_id, text|
+        if @texts[object_id].tainted? then
+          text_node = @xmldoc.find_first(".//DefineEditText[@objectID='#{object_id}']")
+          if text_node then
+            text_node.attributes['initialText'] = text
+          else
+            raise ReplaceTargetNotFoundError
+          end
+        end
+      end
+      # replace movieclip
+      ## get available object_id (greadter than maximum now)
+      available_id_from = adjustment ? (@xmldoc.to_s.scan /objectID=['"](\d+)['"]/).collect { |i| i[0].to_i }.delete_if { |i| i == 65535 }.max + 1 : 0 if adjustment
+      @movieclips.each do |object_id, define_sprite|
+        if @movieclips[object_id].tainted? then
+          movieclip_node = @xmldoc.find_first(".//DefineSprite[@objectID='#{object_id}']")
+          if movieclip_node then
+            # reset id_map for adjustment each movieclip
+            object_id_map = {}
+            # adjust object_id refering in movieclip
+            define_sprite.xmldoc.root.children.each do |e|
+              if adjustment then
+                xpath_axes = "//"
+                # making object_id_map
+                if e.name == "DefineSprite" and e == define_sprite.xmldoc.root.children.last then
+                  # inherit original object_id 
+                  e.attributes['objectID'] = object_id
+                  xpath_axes = ".//"
+                else
+                  # need to adjust?
+                  if @xmldoc.find_first(".//*[@objectID='#{e.attributes['objectID']}']") then
+                    # object_id dupplicated .. need to adjust
+                    object_id_map[e.attributes['objectID']] = available_id_from.to_s unless object_id_map[e.attributes['objectID']]
+                    e.attributes['objectID'] = object_id_map[e.attributes['objectID']]
+                    available_id_from += 1
+                  end
+                end
+                # adjustment!
+                object_id_map.each do |from,to|
+                  e.find("#{xpath_axes}*[@objectID='#{from}']").each do |ae|
+                    ae.attributes['objectID'] = to
+                  end
+                end
+              end
+              # inserting new elements
+              movieclip_node.prev = e
+            end
+            # deleting original movieclip
+            movieclip_node.remove!
+          else
+            raise ReplaceTargetNotFoundError
+          end
+        end
+      end
+      Swfmill.xml2swf(@xmldoc.to_s)
+    end
 
+    def write(filename, adjustment = true)
+      File.open(filename, 'w') do |f|
+        f.write regenerate(adjustment)
+      end
+    end
   end
+
+  class ReplaceTargetNotFoundError < StandardError; end
+
 end
