@@ -1,28 +1,84 @@
 module SwfmillUtil
 
+  # Movieclip Resource in SWF
   class DefineSprite
 
     attr_accessor :images, :texts, :movieclips
     attr_reader :xmldoc
     private_class_method :new
 
+    # initialize by XML (gotten by swf2xml)
+    # Param:: xml: xml gotten by swf2xml
+    # Param:: template_mode: true if skipping to read swf structure
     def self.parseXml(xml, template_mode = false)
       new(nil, xml, template_mode)
     end
 
+    # private class method to initialize
+    # Param:: swf: swf(binary string)
+    # Param:: xml: gotten by swf2xml
+    # Param:: template_mode: true if skipping to read swf structure
     def initialize(swf, xml, template_mode)
       @swf = swf
       @xml = xml
       @xmldoc = LibXML::XML::Document.string(@xml)
-      @images = {}
-      @texts = {}
-      @movieclips = {}
+      @images = ReplacableResources.new
+      @texts = ReplacableResources.new
+      @movieclips = ReplacableResources.new
       read_swf_structure unless template_mode
-      def @images.[]=(k,v); super; self[k].taint; end
-      def @texts.[]=(k,v); super; self[k].taint; end
-      def @movieclips.[]=(k,v); super; self[k].taint; end
+      def @images.[]=(k,v); super; self.replaced_ids << k; end
+      def @texts.[]=(k,v); super; self.replaced_ids << k; end
+      def @movieclips.[]=(k,v); super; self.replaced_ids << k; end
     end
 
+    # get internal movieclip id by instance name on stage
+    # Param:: name: instance_name on stage (String)
+    # Return:: movieclip_ids: Array of movieclip_ids (String)
+    def movieclip_ids_named(name)
+      es = @xmldoc.find(".//PlaceObject2[@name='#{name}']")
+      es.collect { |e| e.attributes['objectID'] }
+    end
+
+    # make movieclip template xml from self(Sprite)
+    # Param:: adjustment: true if you wish to adjust object_id
+    # Param:: root_define_sprite_id_from: present object_id of itselves
+    # Param:: root_define_sprite_id_to: target object_id on replacing
+    # Param:: available_id_from: minimum object_id to use in adjustment
+    # Return:: template xml
+    def templatize(adjustment = false, root_define_sprite_id_from = 0, root_define_sprite_id_to = 0, available_id_from = 0)
+      if adjustment then
+        # reset id_map for adjustment each movieclip
+        object_id_map = {}
+        # adjust object_id refering in movieclip
+        @xmldoc.root.children.each do |e|
+          xpath_axes = "//"
+          # making object_id_map
+          if e.name == "DefineSprite" && e.attributes['objectID'] == root_define_sprite_id_from.to_s then
+            # inherit original object_id 
+            #object_id_map[e.attributes['objectID']] = root_define_sprite_id_to.to_s
+            e.attributes['objectID'] = root_define_sprite_id_to.to_s
+            xpath_axes = ".//"
+          else
+            object_id_map[e.attributes['objectID']] = available_id_from.to_s unless object_id_map[e.attributes['objectID']]
+            e.attributes['objectID'] = object_id_map[e.attributes['objectID']]
+            available_id_from += 1
+          end
+          # adjustment!
+          object_id_map.each do |from,to|
+            e.find("#{xpath_axes}*[@objectID='#{from}']").each do |ae|
+              ae.attributes['objectID'] = to
+            end
+          end
+        end
+      end
+      @xmldoc.to_s
+    end
+
+    protected
+
+    # protected method
+    # reading swf structure and set each ReplacableResources
+    #  to instance variables
     def read_swf_structure
       @xmldoc.find('.//DefineBitsLossless2').each { |n| @images[n.attributes['objectID']] = DefineBitsLossless2.xml2image(n) }
       @xmldoc.find('.//DefineBitsJPEG2').each { |n| @images[n.attributes['objectID']] = DefineBitsJPEG2.xml2image(n) }
@@ -75,48 +131,24 @@ module SwfmillUtil
         @movieclips[e.attributes['objectID']] = DefineSprite.parseXml("<ClippedSprite>#{sprite_xml}</ClippedSprite>")
       end
     end
-
-    def movieclip_ids_named(name)
-      es = @xmldoc.find(".//PlaceObject2[@name='#{name}']")
-      es.collect { |e| e.attributes['objectID'] }
-    end
-
-    def templatize(adjustment = false, root_define_sprite_id_from = 0, root_define_sprite_id_to = 0, available_id_from = 0)
-      if adjustment then
-        # reset id_map for adjustment each movieclip
-        object_id_map = {}
-        # adjust object_id refering in movieclip
-        @xmldoc.root.children.each do |e|
-          xpath_axes = "//"
-          # making object_id_map
-          if e.name == "DefineSprite" && e.attributes['objectID'] == root_define_sprite_id_from.to_s then
-            # inherit original object_id 
-            #object_id_map[e.attributes['objectID']] = root_define_sprite_id_to.to_s
-            e.attributes['objectID'] = root_define_sprite_id_to.to_s
-            xpath_axes = ".//"
-          else
-            object_id_map[e.attributes['objectID']] = available_id_from.to_s unless object_id_map[e.attributes['objectID']]
-            e.attributes['objectID'] = object_id_map[e.attributes['objectID']]
-            available_id_from += 1
-          end
-          # adjustment!
-          object_id_map.each do |from,to|
-            e.find("#{xpath_axes}*[@objectID='#{from}']").each do |ae|
-              ae.attributes['objectID'] = to
-            end
-          end
-        end
-      end
-      @xmldoc.to_s
-    end
   end
 
+  # JPEG Image Resource in SWF
   class DefineBitsJPEG2
+    # class method
+    # make Magick::Image instance from xml
+    # Param:: LibXML::XML::Node of DefineBitsJPEG2
+    # Return:: Magick::Image
     def self.xml2image(node)
       data = Base64.decode64(node.find_first('data/data').content)
       Magick::Image.from_blob(data[4..-1]).first
     end
 
+    # class method
+    # make xml from Magick::Image instance
+    # Param:: object_id: new object_id
+    # Param:: image: Magick::Image (JPEG compression)
+    # Return:: LibXML::XML::Node
     def self.image2xml(object_id, image)
       node = LibXML::XML::Node.new("DefineBitsJPEG2")
       node.attributes['objectID'] = object_id.to_s
@@ -128,10 +160,16 @@ module SwfmillUtil
     end
   end
 
+  # Lossless Bitmap Image Resource in SWF
   class DefineBitsLossless2
     ShiftDepth = Magick::QuantumDepth - 8
     MaxRGB = 2 ** Magick::QuantumDepth - 1
 
+    # class method
+    # make xml from Magick::Image instance
+    # Param:: object_id: new object_id
+    # Param:: image: Magick::Image (PNG or GIF compression)
+    # Return:: LibXML::XML::Node
     def self.image2xml(object_id, image)
       node = LibXML::XML::Node.new("DefineBitsLossless2")
       node.attributes['objectID'] = object_id.to_s
@@ -179,6 +217,10 @@ module SwfmillUtil
       node
     end
 
+    # class method
+    # make Magick::Image instance from xml
+    # Param:: LibXML::XML::Node of DefineBitsLossless2
+    # Return:: Magick::Image
     def self.xml2image(node)
       raise if node.attributes['format'] != "3"
       head = 0
@@ -221,16 +263,21 @@ module SwfmillUtil
     end
   end
 
+  # SWF
   class Swf < DefineSprite
 
+    # initialize by swf binary string
     def self.parseSwf(swf)
       new(swf, Swfmill.swf2xml(swf), false)
     end
 
+    # regenerate swf using SwfmillUtil::Swfmill.xml2swf
+    # Param:: adjustment: adjusting object_id in Swf if true
+    # Return:: Swf binary string
     def regenerate(adjustment)
       # replace image element
       @images.each do |object_id, image|
-        if @images[object_id].tainted? then
+        if @images.replaced_ids.include? object_id then
           image_node = @xmldoc.find_first(".//*[self::DefineBitsLossless2[@objectID='#{object_id}'] or self::DefineBitsJPEG2[@objectID='#{object_id}']]")
           if image_node then
             if image.format == 'JPEG' then
@@ -247,7 +294,7 @@ module SwfmillUtil
       end
       # replace text
       @texts.each do |object_id, text|
-        if @texts[object_id].tainted? then
+        if @texts.replaced_ids.include? object_id then
           text_node = @xmldoc.find_first(".//DefineEditText[@objectID='#{object_id}']")
           if text_node then
             text_node.attributes['initialText'] = text
@@ -260,7 +307,7 @@ module SwfmillUtil
       ## get available object_id (greadter than maximum now)
       available_id_from = adjustment ? (@xmldoc.to_s.scan /objectID=['"](\d+)['"]/).collect { |i| i[0].to_i }.delete_if { |i| i == 65535 }.max + 1 : 0 if adjustment
       @movieclips.each do |object_id, define_sprite|
-        if @movieclips[object_id].tainted? then
+        if @movieclips.replaced_ids.include? object_id then
           movieclip_node = @xmldoc.find_first(".//DefineSprite[@objectID='#{object_id}']")
           if movieclip_node then
             # reset id_map for adjustment each movieclip
@@ -303,10 +350,22 @@ module SwfmillUtil
       Swfmill.xml2swf(@xmldoc.to_s)
     end
 
+    # regenerate and write swf file
+    # Param:: filename
+    # Param:: adjustment: adjusting object_ids if true
     def write(filename, adjustment = true)
       File.open(filename, 'w') do |f|
         f.write regenerate(adjustment)
       end
+    end
+  end
+
+  # ReplacableResouces in Swf
+  class ReplacableResources < Hash
+    attr_accessor :replaced_ids
+    def initialize
+      super
+      @replaced_ids = []
     end
   end
 
