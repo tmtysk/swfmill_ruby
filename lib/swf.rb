@@ -39,18 +39,20 @@ module SwfmillUtil
       es.collect { |e| e.attributes['objectID'] }
     end
 
-    # make movieclip template xml from self(Sprite)
+    # make partial movieclip xml from self(Sprite)
     # Param:: adjustment: true if you wish to adjust object_id
     # Param:: root_define_sprite_id_to: target object_id on replacing
     # Param:: available_id_from: minimum object_id to use in adjustment
+    # Param:: skip_root_node: skip to output xml instruction node and root node if true
     # Return:: template xml
-    def templatize(adjustment = false, root_define_sprite_id_to = 0, available_id_from = 0)
+    def partialize(adjustment = false, root_define_sprite_id_to = 0, available_id_from = 0, skip_root_node = false)
+      xmldoc = LibXML::XML::Document.string(@xmldoc.to_s(:indent => false))
       if adjustment then
-        root_define_sprite_id_from = @xmldoc.root.attributes['baseObjectID']
+        root_define_sprite_id_from = xmldoc.root.attributes['baseObjectID']
         # reset id_map for adjustment each movieclip
         object_id_map = {}
         # adjust object_id refering in movieclip
-        @xmldoc.root.children.each do |e|
+        xmldoc.root.children.each do |e|
           xpath_axes = "//"
           # making object_id_map
           if e.name == "DefineSprite" && e.attributes['objectID'] == root_define_sprite_id_from.to_s then
@@ -71,7 +73,11 @@ module SwfmillUtil
           end
         end
       end
-      @xmldoc.to_s
+      if skip_root_node then
+        xmldoc.root.children.inject("") { |result,node| result << node.to_s }
+      else
+        xmldoc.to_s
+      end
     end
 
     protected
@@ -271,14 +277,28 @@ module SwfmillUtil
       new(swf, Swfmill.swf2xml(swf), false)
     end
 
+    # make template xml from self(Swf)
+    # Param:: templatized_ids: object_ids of DefineSprite on replacing
+    # Return:: templatized text
+    def templatize(templatized_ids = [])
+      doc = @xmldoc.to_s
+      templatized_ids.each do |tid|
+        @xmldoc.find("//DefineSprite[@objectID='#{tid}']").each do |ds|
+          doc.gsub!(Regexp.new(ds.to_s), "####PARTIAL_MOVIECLIP_#{tid}####")
+        end
+      end
+      doc
+    end
+
     # regenerate swf using SwfmillUtil::Swfmill.xml2swf
     # Param:: adjustment: adjusting object_id in Swf if true
     # Return:: Swf binary string
     def regenerate(adjustment)
+      xmldoc = LibXML::XML::Document.string(@xmldoc.to_s(:indent => false))
       # replace image element
       @images.each do |object_id, image|
         if @images.replaced_ids.include? object_id then
-          image_node = @xmldoc.find_first(".//*[self::DefineBitsLossless2[@objectID='#{object_id}'] or self::DefineBitsJPEG2[@objectID='#{object_id}']]")
+          image_node = xmldoc.find_first(".//*[self::DefineBitsLossless2[@objectID='#{object_id}'] or self::DefineBitsJPEG2[@objectID='#{object_id}']]")
           if image_node then
             if image.format == 'JPEG' then
               image_node.prev = DefineBitsJPEG2.image2xml(object_id, image)
@@ -295,7 +315,7 @@ module SwfmillUtil
       # replace text
       @texts.each do |object_id, text|
         if @texts.replaced_ids.include? object_id then
-          text_node = @xmldoc.find_first(".//DefineEditText[@objectID='#{object_id}']")
+          text_node = xmldoc.find_first(".//DefineEditText[@objectID='#{object_id}']")
           if text_node then
             text_node.attributes['initialText'] = text
           else
@@ -305,10 +325,10 @@ module SwfmillUtil
       end
       # replace movieclip
       ## get available object_id (greadter than maximum now)
-      available_id_from = adjustment ? (@xmldoc.to_s.scan /objectID=['"](\d+)['"]/).collect { |i| i[0].to_i }.delete_if { |i| i == 65535 }.max + 1 : 0 if adjustment
+      available_id_from = adjustment ? (xmldoc.to_s.scan /objectID=['"](\d+)['"]/).collect { |i| i[0].to_i }.delete_if { |i| i == 65535 }.max + 1 : 0 if adjustment
       @movieclips.each do |object_id, define_sprite|
         if @movieclips.replaced_ids.include? object_id then
-          movieclip_node = @xmldoc.find_first(".//DefineSprite[@objectID='#{object_id}']")
+          movieclip_node = xmldoc.find_first(".//DefineSprite[@objectID='#{object_id}']")
           if movieclip_node then
             # reset id_map for adjustment each movieclip
             object_id_map = {}
@@ -323,7 +343,7 @@ module SwfmillUtil
                   xpath_axes = ".//"
                 else
                   # need to adjust?
-                  if @xmldoc.find_first(".//*[@objectID='#{e.attributes['objectID']}']") then
+                  if xmldoc.find_first(".//*[@objectID='#{e.attributes['objectID']}']") then
                     # object_id dupplicated .. need to adjust
                     object_id_map[e.attributes['objectID']] = available_id_from.to_s unless object_id_map[e.attributes['objectID']]
                     e.attributes['objectID'] = object_id_map[e.attributes['objectID']]
@@ -347,7 +367,7 @@ module SwfmillUtil
           end
         end
       end
-      Swfmill.xml2swf(@xmldoc.to_s)
+      Swfmill.xml2swf(xmldoc.to_s)
     end
 
     # regenerate and write swf file

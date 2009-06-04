@@ -16,7 +16,8 @@ This library is assumed to use to fiddle with the SWF published as FlashLite 1.1
       * accessing to movieclips as SwfmillUtil::DefineSprite in Swf. (Swf#movieclips)
       * accessing to movieclips by instance-name placed on stage. (Swf#movieclip_ids_named)
       * replacing movieclips with referred shapes, images and texts.
-      * making movieclip template from Swf to use for replacing. (DefineSprite#templatize)
+      * making partial xml meaning movieclip from Swf to use for replacing by DefineSprite#[]=. (DefineSprite#partialize)
+      * making template text based on original xml to use for replacing by String#gsub. (DefineSprite#templatize)
       * adjusting referred object_ids on replace movieclips.
     * writing out re-generated Swf. (Swf#write)
 
@@ -28,7 +29,7 @@ Requirements
      http://dsas.blog.klab.org/archives/51174693.html
  * ImageMagick 6.3.7 or greater
  * rubygems and rmagick(2.8.0 or greater) library
- * LibXML and libxml-ruby(0.9.7)
+ * LibXML2 and libxml-ruby(0.9.7)
 
 Usage
 =====
