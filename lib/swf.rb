@@ -41,12 +41,12 @@ module SwfmillUtil
 
     # make movieclip template xml from self(Sprite)
     # Param:: adjustment: true if you wish to adjust object_id
-    # Param:: root_define_sprite_id_from: present object_id of itselves
     # Param:: root_define_sprite_id_to: target object_id on replacing
     # Param:: available_id_from: minimum object_id to use in adjustment
     # Return:: template xml
-    def templatize(adjustment = false, root_define_sprite_id_from = 0, root_define_sprite_id_to = 0, available_id_from = 0)
+    def templatize(adjustment = false, root_define_sprite_id_to = 0, available_id_from = 0)
       if adjustment then
+        root_define_sprite_id_from = @xmldoc.root.attributes['baseObjectID']
         # reset id_map for adjustment each movieclip
         object_id_map = {}
         # adjust object_id refering in movieclip
@@ -128,7 +128,7 @@ module SwfmillUtil
           end
         end
         sprite_xml << e.to_s
-        @movieclips[e.attributes['objectID']] = DefineSprite.parseXml("<ClippedSprite>#{sprite_xml}</ClippedSprite>")
+        @movieclips[e.attributes['objectID']] = DefineSprite.parseXml("<ClippedSprite baseObjectID='#{e.attributes['objectID']}'>#{sprite_xml}</ClippedSprite>")
       end
     end
   end
@@ -317,7 +317,7 @@ module SwfmillUtil
               if adjustment then
                 xpath_axes = "//"
                 # making object_id_map
-                if e.name == "DefineSprite" and e == define_sprite.xmldoc.root.children.last then
+                if e.name == "DefineSprite" and e.attributes['objectID'] == define_sprite.xmldoc.root.attributes['baseObjectID'] then
                   # inherit original object_id 
                   e.attributes['objectID'] = object_id
                   xpath_axes = ".//"

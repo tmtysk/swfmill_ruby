@@ -19,5 +19,5 @@ pp swf2.movieclip_ids_named("animation") #=> ["6"]
 # templatize movieclip specifying the mapping of object_ids
 #  and available, unused object_id (if you want to adjust object_ids)
 File.open("data/animation_template.xml", "w") do |f|
-  f.puts swf2.movieclips["6"].templatize(true, 6, 5, 1000)
+  f.puts swf2.movieclips["6"].templatize(true, 5, 1000)
 end
