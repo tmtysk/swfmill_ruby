@@ -80,6 +80,20 @@ module SwfmillUtil
       end
     end
 
+    # make template xml from self(Sprite)
+    # Param:: templatized_ids: object_ids of DefineSprite on replacing
+    # Return:: templatized text
+    def templatize(templatized_ids = [])
+      xmldoc = LibXML::XML::Document.string(@xmldoc.to_s(:indent => false))
+      templatized_ids.each do |tid|
+        xmldoc.find("//DefineSprite[@objectID='#{tid}']").each do |ds|
+          ds.prev = LibXML::XML::Node.new_text("####PARTIAL_MOVIECLIP_#{tid}####")
+          ds.remove!
+        end
+      end
+      xmldoc.to_s
+    end
+
     protected
 
     # protected method
@@ -275,19 +289,6 @@ module SwfmillUtil
     # initialize by swf binary string
     def self.parseSwf(swf)
       new(swf, Swfmill.swf2xml(swf), false)
-    end
-
-    # make template xml from self(Swf)
-    # Param:: templatized_ids: object_ids of DefineSprite on replacing
-    # Return:: templatized text
-    def templatize(templatized_ids = [])
-      doc = @xmldoc.to_s
-      templatized_ids.each do |tid|
-        @xmldoc.find("//DefineSprite[@objectID='#{tid}']").each do |ds|
-          doc.gsub!(Regexp.new(ds.to_s), "####PARTIAL_MOVIECLIP_#{tid}####")
-        end
-      end
-      doc
     end
 
     # regenerate swf using SwfmillUtil::Swfmill.xml2swf
