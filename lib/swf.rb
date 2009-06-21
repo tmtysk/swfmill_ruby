@@ -74,24 +74,42 @@ module SwfmillUtil
         end
       end
       if skip_root_node then
-        xmldoc.root.children.inject("") { |result,node| result << node.to_s }
+        xmldoc.root.children.inject("") { |result,node| result << node.to_s }.gsub(Regexp.new('<?xml version="1.0" encoding="UTF-8"?>'), '')
       else
         xmldoc.to_s
       end
     end
 
     # make template xml from self(Sprite)
-    # Param:: templatized_ids: object_ids of DefineSprite on replacing
+    # Param:: templatized_ids: object_ids of DefineSprite on replacing with target_id and replaced_chars
+    # Param:: removed_referred: removing referred elements from self(sprite) if true
     # Return:: templatized text
-    def templatize(templatized_ids = [])
+    def templatize(templatized_ids = {}, remove_referred = false)
       xmldoc = LibXML::XML::Document.string(@xmldoc.to_s(:indent => false))
-      templatized_ids.each do |tid|
+      templatized_ids.each do |tid,hash|
         xmldoc.find("//DefineSprite[@objectID='#{tid}']").each do |ds|
-          ds.prev = LibXML::XML::Node.new_text("####PARTIAL_MOVIECLIP_#{tid}####")
+          ds.prev = LibXML::XML::Node.new_text("#{hash[:replace_name]}")
           ds.remove!
+        end
+        if remove_referred then
+          self.movieclips["#{tid}"].xmldoc.root.children.each do |e|
+            xmldoc.find("//#{e.name}[@objectID='#{e.attributes['objectID']}']").each do |rf|
+              rf.remove!
+            end
+          end
+        end
+        xmldoc.find("//PlaceObject2[@objectID='#{tid}']").each do |pl|
+          pl.attributes['objectID'] = hash[:replace_id].to_s
         end
       end
       xmldoc.to_s
+    end
+
+    # make template to be able to templatize.
+    # use to templatize a partialized template repeatedly.
+    def templatizable
+      @xmldoc.root.name = 'TemplatizedSprite' if @xmldoc.root.name = 'ClippedSprite'
+      read_swf_structure
     end
 
     protected
@@ -107,7 +125,7 @@ module SwfmillUtil
       @referred_place_object = Hash.new do |hash,object_id|
         xml = ""
         # pickup referred DefineShape
-        @xmldoc.find(".//*[self::DefineShape[@objectID='#{object_id}'] or self::DefineShape2[@objectID='#{object_id}']]").each do |e1|
+        @xmldoc.find(".//*[self::DefineShape[@objectID='#{object_id}'] or self::DefineShape2[@objectID='#{object_id}'] or self::DefineShape3[@objectID='#{object_id}']]").each do |e1|
           # pickup referred ClippedBitmap 
           e1.find('.//ClippedBitmap[@objectID]').each do |e2|
             # pickup referred DefineBitsLossless2 and DefineBitsJPEG2
