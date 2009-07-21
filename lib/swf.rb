@@ -211,43 +211,56 @@ module SwfmillUtil
     def self.image2xml(object_id, image)
       node = LibXML::XML::Node.new("DefineBitsLossless2")
       node.attributes['objectID'] = object_id.to_s
-
-      colormap = []
+      is_8bit = image.total_colors < 256
       data = ""
-      image.get_pixels(0, 0, image.columns, image.rows).each_with_index do |pixel,i|
-        idx = colormap.index(pixel)
-        if idx then
-          data << [idx].pack("C")
-        else
-          colormap << pixel
-          data << [colormap.length-1].pack("C")
-        end
-        if (i+1) % image.rows == 0 then
-          # padding
-          data += [0].pack("C") * (4-(image.rows%4))
-        end
-      end
-      data = colormap.inject("") { |r,c|
-        opacity = (MaxRGB-c.opacity) >> ShiftDepth
-        if opacity == 0 then
-          r += 
-            [0].pack("C") +
-            [0].pack("C") +
-            [0].pack("C") +
-            [opacity].pack("C")
-        else
-          r += 
-            [c.red >> ShiftDepth].pack("C") +
-            [c.green >> ShiftDepth].pack("C") +
-            [c.blue >> ShiftDepth].pack("C") +
-            [opacity].pack("C")
-        end
-      } + data
 
-      node.attributes['format'] = '3'
+      if is_8bit then
+        colormap = []
+        image.get_pixels(0, 0, image.columns, image.rows).each_with_index do |pixel,i|
+          idx = colormap.index(pixel)
+          if idx then
+            data << [idx].pack("C")
+          else
+            colormap << pixel
+            data << [colormap.length-1].pack("C")
+          end
+          if (i+1) % image.rows == 0 then
+            # padding
+            data += [0].pack("C") * (4-(image.rows%4))
+          end
+        end
+        data = colormap.inject("") { |r,c|
+          opacity = (MaxRGB-c.opacity) >> ShiftDepth
+          if opacity == 0 then
+            r += 
+              [0].pack("C") +
+              [0].pack("C") +
+              [0].pack("C") +
+              [opacity].pack("C")
+          else
+            r += 
+              [c.red >> ShiftDepth].pack("C") +
+              [c.green >> ShiftDepth].pack("C") +
+              [c.blue >> ShiftDepth].pack("C") +
+              [opacity].pack("C")
+          end
+        } + data
+
+        node.attributes['format'] = '3'
+        node.attributes['n_colormap'] = (colormap.length-1).to_s
+      else
+        image.get_pixels(0, 0, image.columns, image.rows).each_with_index do |pixel,i|
+          data += [(MaxRGB-pixel.opacity) >> ShiftDepth].pack("C")
+          data += [pixel.red >> ShiftDepth].pack("C")
+          data += [pixel.green >> ShiftDepth].pack("C")
+          data += [pixel.blue >> ShiftDepth].pack("C")
+        end
+        
+        node.attributes['format'] = '5'
+      end
+
       node.attributes['width'] = image.columns.to_s
       node.attributes['height'] = image.rows.to_s
-      node.attributes['n_colormap'] = (colormap.length-1).to_s
       data1 = LibXML::XML::Node.new('data')
       data2 = LibXML::XML::Node.new('data', Base64.encode64(Zlib::Deflate.deflate(data)).gsub("\n",""))
       data1 << data2
