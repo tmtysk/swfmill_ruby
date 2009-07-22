@@ -55,7 +55,7 @@ module SwfmillUtil
         xmldoc.root.children.each do |e|
           xpath_axes = "//"
           # making object_id_map
-          if e.name == "DefineSprite" && e.attributes['objectID'] == root_define_sprite_id_from.to_s then
+          if e.name == "DefineSprite" and e.attributes['objectID'] == root_define_sprite_id_from.to_s then
             # inherit original object_id 
             #object_id_map[e.attributes['objectID']] = root_define_sprite_id_to.to_s
             e.attributes['objectID'] = root_define_sprite_id_to.to_s
@@ -224,7 +224,7 @@ module SwfmillUtil
         end
         if (i+1) % image.rows == 0 then
           # padding
-          data += [0].pack("C") * (4-(image.rows%4))
+          data += [0].pack("C") * (4-(image.rows&3))
         end
       end
       data = colormap.inject("") { |r,c|
@@ -289,7 +289,8 @@ module SwfmillUtil
           )
           head += 1
         end
-        head += (4-(width%4))
+        # skip padded
+        head += (4-(width&3))
       end
       # making image
       image = Magick::Image.new(width, height) {
