@@ -211,10 +211,12 @@ module SwfmillUtil
     def self.image2xml(object_id, image)
       node = LibXML::XML::Node.new("DefineBitsLossless2")
       node.attributes['objectID'] = object_id.to_s
-
-      colormap = []
       data = ""
+      colormap = []
+
+      # creating colormap to check number of colors
       image.get_pixels(0, 0, image.columns, image.rows).each_with_index do |pixel,i|
+        break if colormap.length > 255
         idx = colormap.index(pixel)
         if idx then
           data << [idx].pack("C")
@@ -227,27 +229,45 @@ module SwfmillUtil
           data += [0].pack("C") * (4-(image.rows&3))
         end
       end
-      data = colormap.inject("") { |r,c|
-        opacity = (MaxRGB-c.opacity) >> ShiftDepth
-        if opacity == 0 then
-          r += 
-            [0].pack("C") +
-            [0].pack("C") +
-            [0].pack("C") +
-            [opacity].pack("C")
-        else
-          r += 
-            [c.red >> ShiftDepth].pack("C") +
-            [c.green >> ShiftDepth].pack("C") +
-            [c.blue >> ShiftDepth].pack("C") +
-            [opacity].pack("C")
-        end
-      } + data
 
-      node.attributes['format'] = '3'
+      # checking image format by size of colormap
+      if colormap.length > 255 then
+        # format=5
+        # reset and re-build data_stream without colopmap
+        data = ""
+        image.get_pixels(0, 0, image.columns, image.rows).each_with_index do |pixel,i|
+          opacity = (MaxRGB-pixel.opacity) >> ShiftDepth
+          data += [opacity].pack("C")
+          data += [pixel.red >> ShiftDepth].pack("C")
+          data += [pixel.green >> ShiftDepth].pack("C")
+          data += [pixel.blue >> ShiftDepth].pack("C")
+        end
+        node.attributes['format'] = '5'
+      else
+        # format=3
+        # added colormap before data_stream
+        data = colormap.inject("") { |r,c|
+          opacity = (MaxRGB-c.opacity) >> ShiftDepth
+          if opacity == 0 then
+            r += 
+              [0].pack("C") +
+              [0].pack("C") +
+              [0].pack("C") +
+              [opacity].pack("C")
+          else
+            r += 
+              [c.red >> ShiftDepth].pack("C") +
+              [c.green >> ShiftDepth].pack("C") +
+              [c.blue >> ShiftDepth].pack("C") +
+              [opacity].pack("C")
+          end
+        } + data
+        node.attributes['format'] = '3'
+        node.attributes['n_colormap'] = (colormap.length-1).to_s
+      end
+
       node.attributes['width'] = image.columns.to_s
       node.attributes['height'] = image.rows.to_s
-      node.attributes['n_colormap'] = (colormap.length-1).to_s
       data1 = LibXML::XML::Node.new('data')
       data2 = LibXML::XML::Node.new('data', Base64.encode64(Zlib::Deflate.deflate(data)).gsub("\n",""))
       data1 << data2
@@ -260,38 +280,58 @@ module SwfmillUtil
     # Param:: LibXML::XML::Node of DefineBitsLossless2
     # Return:: Magick::Image
     def self.xml2image(node)
-      raise if node.attributes['format'] != "3"
       head = 0
       width = node.attributes['width'].to_i
       height = node.attributes['height'].to_i
       data = Zlib::Inflate.inflate(Base64.decode64(node.find_first('data/data').content))
-      # ready to make colormap
-      colormap = []
-      (node.attributes['n_colormap'].to_i + 1).times do |i|
-        colormap[i] = {
+
+      # ready to make colormap on format=3 only
+      if node.attributes['format'] == "3" then
+        colormap = []
+        (node.attributes['n_colormap'].to_i + 1).times do |i|
+          colormap[i] = {
           'r' => data[head,1].unpack("C").first << ShiftDepth,
           'g' => data[head+1,1].unpack("C").first << ShiftDepth,
           'b' => data[head+2,1].unpack("C").first << ShiftDepth,
           'a' => MaxRGB - (data[head+3,1].unpack("C").first << ShiftDepth)
-        }
-        head += 4
+          }
+          head += 4
+        end
       end
+
       # making pixels
       pixels = []
       height.times do |h|
         width.times do |w|
-          mapidx = data[head,1].unpack("C*").first
-          pixels << Magick::Pixel.new(
-            colormap[mapidx]['r'],
-            colormap[mapidx]['g'],
-            colormap[mapidx]['b'],
-            colormap[mapidx]['a']
-          )
-          head += 1
+          if node.attributes['format'] == "3" then
+            # format=3
+            mapidx = data[head,1].unpack("C").first
+            pixels << Magick::Pixel.new(
+              colormap[mapidx]['r'],
+              colormap[mapidx]['g'],
+              colormap[mapidx]['b'],
+              colormap[mapidx]['a']
+            )
+            head += 1
+          else
+            # format=5
+            opacity = data[head,1].unpack("C").first
+            red = (data[head+1,1].unpack("C").first == 0) ? 0 : ((data[head+1,1].unpack("C").first | opacity) << ShiftDepth)
+            green = (data[head+2,1].unpack("C").first == 0) ? 0 : ((data[head+1,1].unpack("C").first | opacity) << ShiftDepth)
+            blue = (data[head+3,1].unpack("C").first == 0) ? 0 : ((data[head+1,1].unpack("C").first | opacity) << ShiftDepth)
+            pixels << Magick::Pixel.new(
+              red,
+              green,
+              blue,
+              MaxRGB - (opacity << ShiftDepth)
+            )
+            head += 4
+          end
         end
-        # skip padded
-        head += (4-(width&3))
+        # skip padded on format=3 only
+        head += (4-(width&3)) if node.attributes['format'] == "3" 
       end
+
       # making image
       image = Magick::Image.new(width, height) {
         self.colorspace = Magick::RGBColorspace
@@ -378,7 +418,8 @@ module SwfmillUtil
                 end
               end
               # inserting new elements
-              movieclip_node.prev = e
+              copied_node = xmldoc.import(e)
+              movieclip_node.prev = copied_node
             end
             # deleting original movieclip
             movieclip_node.remove!
