@@ -10,8 +10,8 @@ This library is assumed to use to fiddle with the SWF published as FlashLite 1.1
   * SwfmillUtil::Swf
     * accessing to images(Magick::Image) included in Swf. (Swf#images)
     * replacing images and texts included in Swf.
-      * supported tags: DefineBitsLossless2, DefineBitsJPEG2 and DefineEditText.
-      * converting DefineBitsLossless2, DefineBitsJPEG2 <=> Magick::Image
+      * supported tags: DefineBitsLossless, DefineBitsLossless2, DefineBitsJPEG2 and DefineEditText.
+      * converting DefineBitsLossless, DefineBitsLossless2, DefineBitsJPEG2 <=> Magick::Image
     * controlling movieclips in Swf (alpha version)
       * accessing to movieclips as SwfmillUtil::DefineSprite in Swf. (Swf#movieclips)
       * accessing to movieclips by instance-name placed on stage. (Swf#movieclip_ids_named)
@@ -27,6 +27,8 @@ Requirements
  * swfmill 0.2.12
    - patched supporting CP932 encoding
      http://dsas.blog.klab.org/archives/51174693.html
+   - patched supporting DefineBitsLossless format=3
+     http://cyanogen.dynsite.net/~raia/diary/20090728.html#p01
  * ImageMagick 6.3.7 or greater
  * rubygems and rmagick(2.8.0 or greater) library
  * LibXML2 and libxml-ruby(0.9.7)

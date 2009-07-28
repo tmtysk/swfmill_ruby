@@ -118,6 +118,7 @@ module SwfmillUtil
     # reading swf structure and set each ReplacableResources
     #  to instance variables
     def read_swf_structure
+      @xmldoc.find('.//DefineBitsLossless').each { |n| @images[n.attributes['objectID']] = DefineBitsLossless.xml2image(n) }
       @xmldoc.find('.//DefineBitsLossless2').each { |n| @images[n.attributes['objectID']] = DefineBitsLossless2.xml2image(n) }
       @xmldoc.find('.//DefineBitsJPEG2').each { |n| @images[n.attributes['objectID']] = DefineBitsJPEG2.xml2image(n) }
       @xmldoc.find('.//DefineEditText').each { |n| @texts[n.attributes['objectID']] = n.attributes['initialText'] }
@@ -128,8 +129,8 @@ module SwfmillUtil
         @xmldoc.find(".//*[self::DefineShape[@objectID='#{object_id}'] or self::DefineShape2[@objectID='#{object_id}'] or self::DefineShape3[@objectID='#{object_id}']]").each do |e1|
           # pickup referred ClippedBitmap 
           e1.find('.//ClippedBitmap[@objectID]').each do |e2|
-            # pickup referred DefineBitsLossless2 and DefineBitsJPEG2
-            @xmldoc.find(".//*[self::DefineBitsLossless2[@objectID='#{e2.attributes['objectID']}'] or self::DefineBitsJPEG2[@objectID='#{e2.attributes['objectID']}']]").each do |e3|
+            # pickup referred DefineBitsLossless, DefineBitsLossless2 and DefineBitsJPEG2
+            @xmldoc.find(".//*[self::DefineBitsLossless[@objectID='#{e2.attributes['objectID']}'] or self::DefineBitsLossless2[@objectID='#{e2.attributes['objectID']}'] or self::DefineBitsJPEG2[@objectID='#{e2.attributes['objectID']}']]").each do |e3|
               xml << e3.to_s
             end
           end
@@ -198,7 +199,7 @@ module SwfmillUtil
     end
   end
 
-  # Lossless Bitmap Image Resource in SWF
+  # Transparent Lossless Bitmap Image Resource in SWF
   class DefineBitsLossless2
     ShiftDepth = Magick::QuantumDepth - 8
     MaxRGB = 2 ** Magick::QuantumDepth - 1
@@ -226,7 +227,7 @@ module SwfmillUtil
         end
         if (i+1) % image.rows == 0 then
           # padding
-          data += [0].pack("C") * (4-(image.rows&3))
+          data += [0].pack("C") * (4-image.rows&3)
         end
       end
 
@@ -329,7 +330,7 @@ module SwfmillUtil
           end
         end
         # skip padded on format=3 only
-        head += (4-(width&3)) if node.attributes['format'] == "3" 
+        head += (4-width&3) if node.attributes['format'] == "3"
       end
 
       # making image
@@ -337,6 +338,153 @@ module SwfmillUtil
         self.colorspace = Magick::RGBColorspace
         self.compression = Magick::NoCompression
         self.background_color = "transparent"
+      }
+      image.store_pixels(0, 0, width, height, pixels)
+    end
+  end
+
+  # Non Transparent Lossless Bitmap Image Resource in SWF
+  class DefineBitsLossless
+    ShiftDepth = Magick::QuantumDepth - 8
+    ShiftDepth15 = Magick::QuantumDepth - 5
+
+    # class method
+    # make xml from Magick::Image instance
+    # Param:: object_id: new object_id
+    # Param:: image: Magick::Image (PNG or GIF compression)
+    # Return:: LibXML::XML::Node
+    def self.image2xml(object_id, image)
+      node = LibXML::XML::Node.new("DefineBitsLossless")
+      node.attributes['objectID'] = object_id.to_s
+      data = ""
+      colormap = []
+
+      # creating colormap to check number of colors
+      image.get_pixels(0, 0, image.columns, image.rows).each_with_index do |pixel,i|
+        break if colormap.length > 255
+        idx = colormap.index(pixel)
+        if idx then
+          data << [idx].pack("C")
+        else
+          colormap << pixel
+          data << [colormap.length-1].pack("C")
+        end
+        if (i+1) % image.rows == 0 then
+          # padding
+          data += [0].pack("C") * (4-image.rows&3)
+        end
+      end
+
+      # checking image format by size of colormap
+      if colormap.length > 255 then
+        # format=5
+        # reset and re-build data_stream without colopmap
+        data = ""
+        image.get_pixels(0, 0, image.columns, image.rows).each_with_index do |pixel,i|
+          data += [0].pack("C")
+          data += [pixel.red >> ShiftDepth].pack("C")
+          data += [pixel.green >> ShiftDepth].pack("C")
+          data += [pixel.blue >> ShiftDepth].pack("C")
+        end
+        node.attributes['format'] = '5'
+      else
+        # format=3
+        # added colormap before data_stream
+        data = colormap.inject("") { |r,c|
+          r += 
+            [c.red >> ShiftDepth].pack("C") +
+            [c.green >> ShiftDepth].pack("C") +
+            [c.blue >> ShiftDepth].pack("C")
+        } + data
+        node.attributes['format'] = '3'
+        node.attributes['n_colormap'] = (colormap.length-1).to_s
+      end
+
+      node.attributes['width'] = image.columns.to_s
+      node.attributes['height'] = image.rows.to_s
+      data1 = LibXML::XML::Node.new('data')
+      data2 = LibXML::XML::Node.new('data', Base64.encode64(Zlib::Deflate.deflate(data)).gsub("\n",""))
+      data1 << data2
+      node << data1
+      node
+    end
+
+    # class method
+    # make Magick::Image instance from xml
+    # Param:: LibXML::XML::Node of DefineBitsLossless
+    # Return:: Magick::Image
+    def self.xml2image(node)
+      #raise if node.attributes['format'] == "4"
+      head = 0
+      width = node.attributes['width'].to_i
+      height = node.attributes['height'].to_i
+      data = Zlib::Inflate.inflate(Base64.decode64(node.find_first('data/data').content))
+
+      # ready to make colormap on format=3 only
+      if node.attributes['format'] == "3" then
+        colormap = []
+        (node.attributes['n_colormap'].to_i + 1).times do |i|
+          colormap[i] = {
+            'r' => data[head,1].unpack("C").first << ShiftDepth,
+            'g' => data[head+1,1].unpack("C").first << ShiftDepth,
+            'b' => data[head+2,1].unpack("C").first << ShiftDepth
+          }
+          head += 3
+        end
+      end
+
+      # making pixels
+      pixels = []
+      height.times do |h|
+        width.times do |w|
+          if node.attributes['format'] == "3" then
+            # format=3
+            # UI8=colormapidx
+            mapidx = data[head,1].unpack("C").first.to_i
+            pixels << Magick::Pixel.new(
+              colormap[mapidx]['r'],
+              colormap[mapidx]['g'],
+              colormap[mapidx]['b']
+            )
+            head += 1
+          elsif node.attributes['format'] == "4" then
+            # format=4
+            # UB1=0, UB5=red, UB5=green, UB5=blue
+            red = (data[head,2].unpack("B*").first[1,5].to_i == 0) ? 0 : (sprintf("%u", "0b#{data[head,2].unpack("B*").first[1,5]}").to_i << ShiftDepth15)
+            green = (data[head,2].unpack("B*").first[6,5].to_i == 0) ? 0 : (sprintf("%u", "0b#{data[head,2].unpack("B*").first[6,5]}").to_i << ShiftDepth15)
+            blue = (data[head,2].unpack("B*").first[11,5].to_i == 0) ? 0 : (sprintf("%u", "0b#{data[head,2].unpack("B*").first[11,5]}").to_i << ShiftDepth15)
+            pixels << Magick::Pixel.new(
+              red,
+              green,
+              blue
+            )
+            read += 2
+          else
+            # format=5
+            # UI8=0, UI8=red, UI8=green, UI8=blue
+            red = (data[head+1,1].unpack("C").first == 0) ? 0 : (data[head+1,1].unpack("C").first << ShiftDepth)
+            green = (data[head+2,1].unpack("C").first == 0) ? 0 : (data[head+2,1].unpack("C").first << ShiftDepth)
+            blue = (data[head+3,1].unpack("C").first == 0) ? 0 : (data[head+3,1].unpack("C").first << ShiftDepth)
+            pixels << Magick::Pixel.new(
+              red,
+              green,
+              blue
+            )
+            head += 4
+          end
+        end
+        # skip padded on format=3,4 only
+        if node.attributes['format'] == "3"
+          head += (4-width&3)
+        elsif node.attributes['format'] == "4"
+          head += 2*(width&1)
+        end
+      end
+
+      # making image
+      image = Magick::Image.new(width, height) {
+        self.colorspace = Magick::RGBColorspace
+        self.compression = Magick::NoCompression
       }
       image.store_pixels(0, 0, width, height, pixels)
     end
@@ -358,14 +506,19 @@ module SwfmillUtil
       # replace image element
       @images.each do |object_id, image|
         if @images.replaced_ids.include? object_id then
-          image_node = xmldoc.find_first(".//*[self::DefineBitsLossless2[@objectID='#{object_id}'] or self::DefineBitsJPEG2[@objectID='#{object_id}']]")
+          image_node = xmldoc.find_first(".//*[self::DefineBitsLossless[@objectID='#{object_id}'] or self::DefineBitsLossless2[@objectID='#{object_id}'] or self::DefineBitsJPEG2[@objectID='#{object_id}']]")
           if image_node then
             if image.format == 'JPEG' then
               image_node.prev = DefineBitsJPEG2.image2xml(object_id, image)
               image_node.remove!
             else
-              image_node.prev = DefineBitsLossless2.image2xml(object_id, image)
-              image_node.remove!
+              if image.alpha?
+                image_node.prev = DefineBitsLossless2.image2xml(object_id, image)
+                image_node.remove!
+              else
+                image_node.prev = DefineBitsLossless.image2xml(object_id, image)
+                image_node.remove!
+              end
             end
           else
             raise ReplaceTargetNotFoundError
