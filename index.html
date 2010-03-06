@@ -1,0 +1,115 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+
+	<title>tmtysk/swfmill_ruby @ GitHub</title>
+	
+	<style type="text/css">
+		body {
+  		margin-top: 1.0em;
+  		background-color: #55e09c;
+		  font-family: "Helvetica,Arial,FreeSans";
+  		color: #000000;
+    }
+    #container {
+      margin: 0 auto;
+      width: 700px;
+    }
+		h1 { font-size: 3.8em; color: #aa1f63; margin-bottom: 3px; }
+		h1 .small { font-size: 0.4em; }
+		h1 a { text-decoration: none }
+		h2 { font-size: 1.5em; color: #aa1f63; }
+    h3 { text-align: center; color: #aa1f63; }
+    a { color: #aa1f63; }
+    .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px; font-style: italic;}
+    .download { float: right; }
+		pre { background: #000; color: #fff; padding: 15px;}
+    hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
+    .footer { text-align:center; padding-top:30px; font-style: italic; }
+	</style>
+	
+</head>
+
+<body>
+  <a href="http://github.com/tmtysk/swfmill_ruby"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
+
+  <div id="container">
+
+    <div class="download">
+      <a href="http://github.com/tmtysk/swfmill_ruby/zipball/master">
+        <img border="0" width="90" src="http://github.com/images/modules/download/zip.png"></a>
+      <a href="http://github.com/tmtysk/swfmill_ruby/tarball/master">
+        <img border="0" width="90" src="http://github.com/images/modules/download/tar.png"></a>
+    </div>
+
+    <h1><a href="http://github.com/tmtysk/swfmill_ruby">swfmill_ruby</a>
+      <span class="small">by <a href="http://github.com/tmtysk">tmtysk</a></span></h1>
+
+    <div class="description">
+      utility-classes to use Swfmill(http://swfmill.org) via Ruby.
+    </div>
+
+    <p>SwfmillRuby is a utility-classes to use Swfmill(http://swfmill.org) via Ruby.
+This library is assumed to use to fiddle with the SWF published as FlashLite 1.1 - most popular version among mobile 
+phone in Japan.
+
+* features
+  * SwfmillUtil::Swfmill
+    * calling swfmill-program(xml2swf, swf2xml) from ruby.
+  * SwfmillUtil::Swf
+    * accessing to images(Magick::Image) included in Swf. (Swf#images)
+    * replacing images and texts included in Swf.
+      * supported tags: DefineBitsLossless, DefineBitsLossless2, DefineBitsJPEG2 and DefineEditText.
+      * converting DefineBitsLossless, DefineBitsLossless2, DefineBitsJPEG2 <=> Magick::Image
+    * controlling movieclips in Swf (alpha version)
+      * accessing to movieclips as SwfmillUtil::DefineSprite in Swf. (Swf#movieclips)
+      * accessing to movieclips by instance-name placed on stage. (Swf#movieclip_ids_named)
+      * replacing movieclips with referred shapes, images and texts.
+      * making partial xml meaning movieclip from Swf to use for replacing by DefineSprite#[]=. 
+      (DefineSprite#partialize)
+      * making template text based on original xml to use for replacing by String#gsub. (DefineSprite#templatize)
+      * adjusting referred object_ids on replace movieclips.
+    * writing out re-generated Swf. (Swf#write)</p><h2>Dependencies</h2>
+<p>* swfmill 0.2.12 or greater
+   - patched supporting CP932 encoding
+     http://dsas.blog.klab.org/archives/51174693.html .. patched it on rev.278 (version 0.3.0.1)
+   - patched supporting DefineBitsLossless format=3
+     http://cyanogen.dynsite.net/~raia/diary/20090728.html#p01
+ * ImageMagick 6.3.7 or greater
+ * rubygems and rmagick(2.8.0 or greater) library
+ * LibXML2 and libxml-ruby(0.9.7)</p>
+<h2>Install</h2>
+<p>$ gem install jeweler
+$ rake build
+$ rake install</p>
+<h2>License</h2>
+<p>The GNU GENERAL PUBLIC LICENSE Version 2.</p>
+<h2>Authors</h2>
+<p>hokaccha (k.hokamura@gmail.com)<br/>MURAOKA Daisuke (raia@muj.biglobe.ne.jp)<br/>tmtysk (tmtysk@gmail.com)<br/><br/>      </p>
+<h2>Contact</h2>
+<p>tmtysk (tmtysk@gmail.com)<br/>      </p>
+
+
+    <h2>Download</h2>
+    <p>
+      You can download this project in either
+      <a href="http://github.com/tmtysk/swfmill_ruby/zipball/master">zip</a> or
+      <a href="http://github.com/tmtysk/swfmill_ruby/tarball/master">tar</a> formats.
+    </p>
+    <p>You can also clone the project with <a href="http://git-scm.com">Git</a>
+      by running:
+      <pre>$ git clone git://github.com/tmtysk/swfmill_ruby</pre>
+    </p>
+
+    <div class="footer">
+      get the source code on GitHub : <a href="http://github.com/tmtysk/swfmill_ruby">tmtysk/swfmill_ruby</a>
+    </div>
+
+  </div>
+
+  
+</body>
+</html>
