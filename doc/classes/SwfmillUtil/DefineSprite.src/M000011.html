@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>partialize (SwfmillUtil::DefineSprite)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/swf.rb, line 48</span>
+    <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">partialize</span>(<span class="ruby-identifier">adjustment</span> = <span class="ruby-keyword kw">false</span>, <span class="ruby-identifier">root_define_sprite_id_to</span> = <span class="ruby-value">0</span>, <span class="ruby-identifier">available_id_from</span> = <span class="ruby-value">0</span>, <span class="ruby-identifier">skip_root_node</span> = <span class="ruby-keyword kw">false</span>)
+      <span class="ruby-identifier">xmldoc</span> = <span class="ruby-constant">LibXML</span><span class="ruby-operator">::</span><span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Document</span>.<span class="ruby-identifier">string</span>(<span class="ruby-ivar">@xmldoc</span>.<span class="ruby-identifier">to_s</span>(<span class="ruby-identifier">:indent</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-keyword kw">false</span>))
+      <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">adjustment</span> <span class="ruby-keyword kw">then</span>
+        <span class="ruby-identifier">root_define_sprite_id_from</span> = <span class="ruby-identifier">xmldoc</span>.<span class="ruby-identifier">root</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'baseObjectID'</span>]
+        <span class="ruby-comment cmt"># reset id_map for adjustment each movieclip</span>
+        <span class="ruby-identifier">object_id_map</span> = {}
+        <span class="ruby-comment cmt"># adjust object_id refering in movieclip</span>
+        <span class="ruby-identifier">xmldoc</span>.<span class="ruby-identifier">root</span>.<span class="ruby-identifier">children</span>.<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">e</span><span class="ruby-operator">|</span>
+          <span class="ruby-identifier">xpath_axes</span> = <span class="ruby-value str">&quot;//&quot;</span>
+          <span class="ruby-comment cmt"># making object_id_map</span>
+          <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">e</span>.<span class="ruby-identifier">name</span> <span class="ruby-operator">==</span> <span class="ruby-value str">&quot;DefineSprite&quot;</span> <span class="ruby-keyword kw">and</span> <span class="ruby-identifier">e</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'objectID'</span>] <span class="ruby-operator">==</span> <span class="ruby-identifier">root_define_sprite_id_from</span>.<span class="ruby-identifier">to_s</span> <span class="ruby-keyword kw">then</span>
+            <span class="ruby-comment cmt"># inherit original object_id </span>
+            <span class="ruby-comment cmt">#object_id_map[e.attributes['objectID']] = root_define_sprite_id_to.to_s</span>
+            <span class="ruby-identifier">e</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'objectID'</span>] = <span class="ruby-identifier">root_define_sprite_id_to</span>.<span class="ruby-identifier">to_s</span>
+            <span class="ruby-identifier">xpath_axes</span> = <span class="ruby-value str">&quot;.//&quot;</span>
+          <span class="ruby-keyword kw">else</span>
+            <span class="ruby-identifier">object_id_map</span>[<span class="ruby-identifier">e</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'objectID'</span>]] = <span class="ruby-identifier">available_id_from</span>.<span class="ruby-identifier">to_s</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">object_id_map</span>[<span class="ruby-identifier">e</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'objectID'</span>]]
+            <span class="ruby-identifier">e</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'objectID'</span>] = <span class="ruby-identifier">object_id_map</span>[<span class="ruby-identifier">e</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'objectID'</span>]]
+            <span class="ruby-identifier">available_id_from</span> <span class="ruby-operator">+=</span> <span class="ruby-value">1</span>
+          <span class="ruby-keyword kw">end</span>
+          <span class="ruby-comment cmt"># adjustment!</span>
+          <span class="ruby-identifier">object_id_map</span>.<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">from</span>,<span class="ruby-identifier">to</span><span class="ruby-operator">|</span>
+            <span class="ruby-identifier">e</span>.<span class="ruby-identifier">find</span>(<span class="ruby-node">&quot;#{xpath_axes}*[@objectID='#{from}']&quot;</span>).<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">ae</span><span class="ruby-operator">|</span>
+              <span class="ruby-identifier">ae</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'objectID'</span>] = <span class="ruby-identifier">to</span>
+            <span class="ruby-keyword kw">end</span>
+          <span class="ruby-keyword kw">end</span>
+        <span class="ruby-keyword kw">end</span>
+      <span class="ruby-keyword kw">end</span>
+      <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">skip_root_node</span> <span class="ruby-keyword kw">then</span>
+        <span class="ruby-identifier">xmldoc</span>.<span class="ruby-identifier">root</span>.<span class="ruby-identifier">children</span>.<span class="ruby-identifier">inject</span>(<span class="ruby-value str">&quot;&quot;</span>) { <span class="ruby-operator">|</span><span class="ruby-identifier">result</span>,<span class="ruby-identifier">node</span><span class="ruby-operator">|</span> <span class="ruby-identifier">result</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">node</span>.<span class="ruby-identifier">to_s</span> }.<span class="ruby-identifier">gsub</span>(<span class="ruby-constant">Regexp</span>.<span class="ruby-identifier">new</span>(<span class="ruby-value str">'&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;'</span>), <span class="ruby-value str">''</span>)
+      <span class="ruby-keyword kw">else</span>
+        <span class="ruby-identifier">xmldoc</span>.<span class="ruby-identifier">to_s</span>
+      <span class="ruby-keyword kw">end</span>
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>
