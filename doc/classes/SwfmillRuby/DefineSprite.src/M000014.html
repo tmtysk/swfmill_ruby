@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>read_swf_structure (SwfmillRuby::DefineSprite)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/swf.rb, line 120</span>
+    <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">read_swf_structure</span>
+      <span class="ruby-ivar">@xmldoc</span>.<span class="ruby-identifier">find</span>(<span class="ruby-value str">'.//DefineBitsLossless'</span>).<span class="ruby-identifier">each</span> { <span class="ruby-operator">|</span><span class="ruby-identifier">n</span><span class="ruby-operator">|</span> <span class="ruby-ivar">@images</span>[<span class="ruby-identifier">n</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'objectID'</span>]] = <span class="ruby-constant">DefineBitsLossless</span>.<span class="ruby-identifier">xml2image</span>(<span class="ruby-identifier">n</span>) }
+      <span class="ruby-ivar">@xmldoc</span>.<span class="ruby-identifier">find</span>(<span class="ruby-value str">'.//DefineBitsLossless2'</span>).<span class="ruby-identifier">each</span> { <span class="ruby-operator">|</span><span class="ruby-identifier">n</span><span class="ruby-operator">|</span> <span class="ruby-ivar">@images</span>[<span class="ruby-identifier">n</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'objectID'</span>]] = <span class="ruby-constant">DefineBitsLossless2</span>.<span class="ruby-identifier">xml2image</span>(<span class="ruby-identifier">n</span>) }
+      <span class="ruby-ivar">@xmldoc</span>.<span class="ruby-identifier">find</span>(<span class="ruby-value str">'.//DefineBitsJPEG2'</span>).<span class="ruby-identifier">each</span> { <span class="ruby-operator">|</span><span class="ruby-identifier">n</span><span class="ruby-operator">|</span> <span class="ruby-ivar">@images</span>[<span class="ruby-identifier">n</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'objectID'</span>]] = <span class="ruby-constant">DefineBitsJPEG2</span>.<span class="ruby-identifier">xml2image</span>(<span class="ruby-identifier">n</span>) }
+      <span class="ruby-ivar">@xmldoc</span>.<span class="ruby-identifier">find</span>(<span class="ruby-value str">'.//DefineEditText'</span>).<span class="ruby-identifier">each</span> { <span class="ruby-operator">|</span><span class="ruby-identifier">n</span><span class="ruby-operator">|</span> <span class="ruby-ivar">@texts</span>[<span class="ruby-identifier">n</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'objectID'</span>]] = <span class="ruby-identifier">n</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'initialText'</span>] }
+
+      <span class="ruby-ivar">@referred_place_object</span> = <span class="ruby-constant">Hash</span>.<span class="ruby-identifier">new</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">hash</span>,<span class="ruby-identifier">object_id</span><span class="ruby-operator">|</span>
+        <span class="ruby-identifier">xml</span> = <span class="ruby-value str">&quot;&quot;</span>
+        <span class="ruby-comment cmt"># pickup referred DefineShape</span>
+        <span class="ruby-ivar">@xmldoc</span>.<span class="ruby-identifier">find</span>(<span class="ruby-node">&quot;.//*[self::DefineShape[@objectID='#{object_id}'] or self::DefineShape2[@objectID='#{object_id}'] or self::DefineShape3[@objectID='#{object_id}']]&quot;</span>).<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">e1</span><span class="ruby-operator">|</span>
+          <span class="ruby-comment cmt"># pickup referred ClippedBitmap </span>
+          <span class="ruby-identifier">e1</span>.<span class="ruby-identifier">find</span>(<span class="ruby-value str">'.//ClippedBitmap[@objectID]'</span>).<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">e2</span><span class="ruby-operator">|</span>
+            <span class="ruby-comment cmt"># pickup referred DefineBitsLossless, DefineBitsLossless2 and DefineBitsJPEG2</span>
+            <span class="ruby-ivar">@xmldoc</span>.<span class="ruby-identifier">find</span>(<span class="ruby-node">&quot;.//*[self::DefineBitsLossless[@objectID='#{e2.attributes['objectID']}'] or self::DefineBitsLossless2[@objectID='#{e2.attributes['objectID']}'] or self::DefineBitsJPEG2[@objectID='#{e2.attributes['objectID']}']]&quot;</span>).<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">e3</span><span class="ruby-operator">|</span>
+              <span class="ruby-identifier">xml</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">e3</span>.<span class="ruby-identifier">to_s</span>
+            <span class="ruby-keyword kw">end</span>
+          <span class="ruby-keyword kw">end</span>
+          <span class="ruby-identifier">xml</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">e1</span>.<span class="ruby-identifier">to_s</span>
+        <span class="ruby-keyword kw">end</span>
+        <span class="ruby-comment cmt"># pickup referred DefineEditText</span>
+        <span class="ruby-ivar">@xmldoc</span>.<span class="ruby-identifier">find</span>(<span class="ruby-node">&quot;.//DefineEditText[@objectID='#{object_id}']&quot;</span>).<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">e</span><span class="ruby-operator">|</span>
+          <span class="ruby-identifier">xml</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">e</span>.<span class="ruby-identifier">to_s</span>
+        <span class="ruby-keyword kw">end</span>
+        <span class="ruby-comment cmt"># pickup referred PlaceSprite(Recursive)</span>
+        <span class="ruby-identifier">inserted</span> = {}
+        <span class="ruby-ivar">@xmldoc</span>.<span class="ruby-identifier">find</span>(<span class="ruby-node">&quot;.//DefineSprite[@objectID='#{object_id}']&quot;</span>).<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">e</span><span class="ruby-operator">|</span>
+          <span class="ruby-identifier">e</span>.<span class="ruby-identifier">find</span>(<span class="ruby-value str">'.//PlaceObject2[@objectID]'</span>).<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">re</span><span class="ruby-operator">|</span>
+            <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">inserted</span>[<span class="ruby-identifier">re</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'objectID'</span>]] <span class="ruby-keyword kw">then</span>
+              <span class="ruby-identifier">xml</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-ivar">@referred_place_object</span>[<span class="ruby-identifier">re</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'objectID'</span>]]
+              <span class="ruby-identifier">inserted</span>[<span class="ruby-identifier">re</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'objectID'</span>]] = <span class="ruby-keyword kw">true</span>
+            <span class="ruby-keyword kw">end</span>
+          <span class="ruby-keyword kw">end</span>
+          <span class="ruby-identifier">xml</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">e</span>.<span class="ruby-identifier">to_s</span>
+        <span class="ruby-keyword kw">end</span>
+        <span class="ruby-identifier">hash</span>[<span class="ruby-identifier">object_id</span>] = <span class="ruby-identifier">xml</span>
+      <span class="ruby-keyword kw">end</span>
+
+      <span class="ruby-ivar">@xmldoc</span>.<span class="ruby-identifier">find</span>(<span class="ruby-value str">'.//DefineSprite'</span>).<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">e</span><span class="ruby-operator">|</span>
+        <span class="ruby-keyword kw">next</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">e</span>.<span class="ruby-identifier">parent</span>.<span class="ruby-identifier">name</span> <span class="ruby-operator">==</span> <span class="ruby-value str">'ClippedSprite'</span>
+        <span class="ruby-comment cmt"># pickup referred PlaceObject</span>
+        <span class="ruby-identifier">inserted</span> = {}
+        <span class="ruby-identifier">sprite_xml</span> = <span class="ruby-value str">&quot;&quot;</span>
+        <span class="ruby-identifier">e</span>.<span class="ruby-identifier">find</span>(<span class="ruby-value str">'.//PlaceObject2[@objectID]'</span>).<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">re</span><span class="ruby-operator">|</span>
+          <span class="ruby-comment cmt">#sprite_xml &lt;&lt; referred_place_object(re.attributes['objectID'])</span>
+          <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">inserted</span>[<span class="ruby-identifier">re</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'objectID'</span>]] <span class="ruby-keyword kw">then</span>
+            <span class="ruby-identifier">sprite_xml</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-ivar">@referred_place_object</span>[<span class="ruby-identifier">re</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'objectID'</span>]]
+            <span class="ruby-identifier">inserted</span>[<span class="ruby-identifier">re</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'objectID'</span>]] = <span class="ruby-keyword kw">true</span>
+          <span class="ruby-keyword kw">end</span>
+        <span class="ruby-keyword kw">end</span>
+        <span class="ruby-identifier">sprite_xml</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">e</span>.<span class="ruby-identifier">to_s</span>
+        <span class="ruby-ivar">@movieclips</span>[<span class="ruby-identifier">e</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'objectID'</span>]] = <span class="ruby-constant">DefineSprite</span>.<span class="ruby-identifier">parseXml</span>(<span class="ruby-node">&quot;&lt;ClippedSprite baseObjectID='#{e.attributes['objectID']}'&gt;#{sprite_xml}&lt;/ClippedSprite&gt;&quot;</span>)
+      <span class="ruby-keyword kw">end</span>
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

@@ -17,15 +17,15 @@ SwfmillRuby is a utility-classes to use Swfmill(http://swfmill.org) via Ruby.
 This library is assumed to use to fiddle with the SWF published as FlashLite 1.1 - most popular version among mobile phone in Japan.
 
 * features
-  * SwfmillUtil::Swfmill
+  * SwfmillRuby::Swfmill
     * calling swfmill-program(xml2swf, swf2xml) from ruby.
-  * SwfmillUtil::Swf
+  * SwfmillRuby::Swf
     * accessing to images(Magick::Image) included in Swf. (Swf#images)
     * replacing images and texts included in Swf.
       * supported tags: DefineBitsLossless, DefineBitsLossless2, DefineBitsJPEG2 and DefineEditText.
       * converting DefineBitsLossless, DefineBitsLossless2, DefineBitsJPEG2 <=> Magick::Image
     * controlling movieclips in Swf (alpha version)
-      * accessing to movieclips as SwfmillUtil::DefineSprite in Swf. (Swf#movieclips)
+      * accessing to movieclips as SwfmillRuby::DefineSprite in Swf. (Swf#movieclips)
       * accessing to movieclips by instance-name placed on stage. (Swf#movieclip_ids_named)
       * replacing movieclips with referred shapes, images and texts.
       * making partial xml meaning movieclip from Swf to use for replacing by DefineSprite#[]=. (DefineSprite#partialize)

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>image2xml (SwfmillRuby::DefineBitsLossless2)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/swf.rb, line 212</span>
+    <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">image2xml</span>(<span class="ruby-identifier">object_id</span>, <span class="ruby-identifier">image</span>)
+      <span class="ruby-identifier">node</span> = <span class="ruby-constant">LibXML</span><span class="ruby-operator">::</span><span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Node</span>.<span class="ruby-identifier">new</span>(<span class="ruby-value str">&quot;DefineBitsLossless2&quot;</span>)
+      <span class="ruby-identifier">node</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'objectID'</span>] = <span class="ruby-identifier">object_id</span>.<span class="ruby-identifier">to_s</span>
+      <span class="ruby-identifier">data</span> = <span class="ruby-value str">&quot;&quot;</span>
+      <span class="ruby-identifier">colormap</span> = []
+
+      <span class="ruby-comment cmt"># creating colormap to check number of colors</span>
+      <span class="ruby-identifier">image</span>.<span class="ruby-identifier">get_pixels</span>(<span class="ruby-value">0</span>, <span class="ruby-value">0</span>, <span class="ruby-identifier">image</span>.<span class="ruby-identifier">columns</span>, <span class="ruby-identifier">image</span>.<span class="ruby-identifier">rows</span>).<span class="ruby-identifier">each_with_index</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">pixel</span>,<span class="ruby-identifier">i</span><span class="ruby-operator">|</span>
+        <span class="ruby-keyword kw">break</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">colormap</span>.<span class="ruby-identifier">length</span> <span class="ruby-operator">&gt;</span> <span class="ruby-value">255</span>
+        <span class="ruby-identifier">idx</span> = <span class="ruby-identifier">colormap</span>.<span class="ruby-identifier">index</span>(<span class="ruby-identifier">pixel</span>)
+        <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">idx</span> <span class="ruby-keyword kw">then</span>
+          <span class="ruby-identifier">data</span> <span class="ruby-operator">&lt;&lt;</span> [<span class="ruby-identifier">idx</span>].<span class="ruby-identifier">pack</span>(<span class="ruby-value str">&quot;C&quot;</span>)
+        <span class="ruby-keyword kw">else</span>
+          <span class="ruby-identifier">colormap</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">pixel</span>
+          <span class="ruby-identifier">data</span> <span class="ruby-operator">&lt;&lt;</span> [<span class="ruby-identifier">colormap</span>.<span class="ruby-identifier">length</span><span class="ruby-operator">-</span><span class="ruby-value">1</span>].<span class="ruby-identifier">pack</span>(<span class="ruby-value str">&quot;C&quot;</span>)
+        <span class="ruby-keyword kw">end</span>
+        <span class="ruby-keyword kw">if</span> (<span class="ruby-identifier">i</span><span class="ruby-operator">+</span><span class="ruby-value">1</span>) <span class="ruby-operator">%</span> <span class="ruby-identifier">image</span>.<span class="ruby-identifier">rows</span> <span class="ruby-operator">==</span> <span class="ruby-value">0</span> <span class="ruby-keyword kw">then</span>
+          <span class="ruby-comment cmt"># padding</span>
+          <span class="ruby-identifier">data</span> <span class="ruby-operator">+=</span> [<span class="ruby-value">0</span>].<span class="ruby-identifier">pack</span>(<span class="ruby-value str">&quot;C&quot;</span>) <span class="ruby-operator">*</span> (<span class="ruby-value">4</span><span class="ruby-operator">-</span><span class="ruby-identifier">image</span>.<span class="ruby-identifier">rows</span><span class="ruby-operator">&amp;</span><span class="ruby-value">3</span>)
+        <span class="ruby-keyword kw">end</span>
+      <span class="ruby-keyword kw">end</span>
+
+      <span class="ruby-comment cmt"># checking image format by size of colormap</span>
+      <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">colormap</span>.<span class="ruby-identifier">length</span> <span class="ruby-operator">&gt;</span> <span class="ruby-value">255</span> <span class="ruby-keyword kw">then</span>
+        <span class="ruby-comment cmt"># format=5</span>
+        <span class="ruby-comment cmt"># reset and re-build data_stream without colopmap</span>
+        <span class="ruby-identifier">data</span> = <span class="ruby-value str">&quot;&quot;</span>
+        <span class="ruby-identifier">image</span>.<span class="ruby-identifier">get_pixels</span>(<span class="ruby-value">0</span>, <span class="ruby-value">0</span>, <span class="ruby-identifier">image</span>.<span class="ruby-identifier">columns</span>, <span class="ruby-identifier">image</span>.<span class="ruby-identifier">rows</span>).<span class="ruby-identifier">each_with_index</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">pixel</span>,<span class="ruby-identifier">i</span><span class="ruby-operator">|</span>
+          <span class="ruby-identifier">opacity</span> = (<span class="ruby-constant">MaxRGB</span><span class="ruby-operator">-</span><span class="ruby-identifier">pixel</span>.<span class="ruby-identifier">opacity</span>) <span class="ruby-operator">&gt;&gt;</span> <span class="ruby-constant">ShiftDepth</span>
+          <span class="ruby-identifier">data</span> <span class="ruby-operator">+=</span> [<span class="ruby-identifier">opacity</span>].<span class="ruby-identifier">pack</span>(<span class="ruby-value str">&quot;C&quot;</span>)
+          <span class="ruby-identifier">data</span> <span class="ruby-operator">+=</span> [<span class="ruby-identifier">pixel</span>.<span class="ruby-identifier">red</span> <span class="ruby-operator">&gt;&gt;</span> <span class="ruby-constant">ShiftDepth</span>].<span class="ruby-identifier">pack</span>(<span class="ruby-value str">&quot;C&quot;</span>)
+          <span class="ruby-identifier">data</span> <span class="ruby-operator">+=</span> [<span class="ruby-identifier">pixel</span>.<span class="ruby-identifier">green</span> <span class="ruby-operator">&gt;&gt;</span> <span class="ruby-constant">ShiftDepth</span>].<span class="ruby-identifier">pack</span>(<span class="ruby-value str">&quot;C&quot;</span>)
+          <span class="ruby-identifier">data</span> <span class="ruby-operator">+=</span> [<span class="ruby-identifier">pixel</span>.<span class="ruby-identifier">blue</span> <span class="ruby-operator">&gt;&gt;</span> <span class="ruby-constant">ShiftDepth</span>].<span class="ruby-identifier">pack</span>(<span class="ruby-value str">&quot;C&quot;</span>)
+        <span class="ruby-keyword kw">end</span>
+        <span class="ruby-identifier">node</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'format'</span>] = <span class="ruby-value str">'5'</span>
+      <span class="ruby-keyword kw">else</span>
+        <span class="ruby-comment cmt"># format=3</span>
+        <span class="ruby-comment cmt"># added colormap before data_stream</span>
+        <span class="ruby-identifier">data</span> = <span class="ruby-identifier">colormap</span>.<span class="ruby-identifier">inject</span>(<span class="ruby-value str">&quot;&quot;</span>) { <span class="ruby-operator">|</span><span class="ruby-identifier">r</span>,<span class="ruby-identifier">c</span><span class="ruby-operator">|</span>
+          <span class="ruby-identifier">opacity</span> = (<span class="ruby-constant">MaxRGB</span><span class="ruby-operator">-</span><span class="ruby-identifier">c</span>.<span class="ruby-identifier">opacity</span>) <span class="ruby-operator">&gt;&gt;</span> <span class="ruby-constant">ShiftDepth</span>
+          <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">opacity</span> <span class="ruby-operator">==</span> <span class="ruby-value">0</span> <span class="ruby-keyword kw">then</span>
+            <span class="ruby-identifier">r</span> <span class="ruby-operator">+=</span> 
+              [<span class="ruby-value">0</span>].<span class="ruby-identifier">pack</span>(<span class="ruby-value str">&quot;C&quot;</span>) <span class="ruby-operator">+</span>
+              [<span class="ruby-value">0</span>].<span class="ruby-identifier">pack</span>(<span class="ruby-value str">&quot;C&quot;</span>) <span class="ruby-operator">+</span>
+              [<span class="ruby-value">0</span>].<span class="ruby-identifier">pack</span>(<span class="ruby-value str">&quot;C&quot;</span>) <span class="ruby-operator">+</span>
+              [<span class="ruby-identifier">opacity</span>].<span class="ruby-identifier">pack</span>(<span class="ruby-value str">&quot;C&quot;</span>)
+          <span class="ruby-keyword kw">else</span>
+            <span class="ruby-identifier">r</span> <span class="ruby-operator">+=</span> 
+              [<span class="ruby-identifier">c</span>.<span class="ruby-identifier">red</span> <span class="ruby-operator">&gt;&gt;</span> <span class="ruby-constant">ShiftDepth</span>].<span class="ruby-identifier">pack</span>(<span class="ruby-value str">&quot;C&quot;</span>) <span class="ruby-operator">+</span>
+              [<span class="ruby-identifier">c</span>.<span class="ruby-identifier">green</span> <span class="ruby-operator">&gt;&gt;</span> <span class="ruby-constant">ShiftDepth</span>].<span class="ruby-identifier">pack</span>(<span class="ruby-value str">&quot;C&quot;</span>) <span class="ruby-operator">+</span>
+              [<span class="ruby-identifier">c</span>.<span class="ruby-identifier">blue</span> <span class="ruby-operator">&gt;&gt;</span> <span class="ruby-constant">ShiftDepth</span>].<span class="ruby-identifier">pack</span>(<span class="ruby-value str">&quot;C&quot;</span>) <span class="ruby-operator">+</span>
+              [<span class="ruby-identifier">opacity</span>].<span class="ruby-identifier">pack</span>(<span class="ruby-value str">&quot;C&quot;</span>)
+          <span class="ruby-keyword kw">end</span>
+        } <span class="ruby-operator">+</span> <span class="ruby-identifier">data</span>
+        <span class="ruby-identifier">node</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'format'</span>] = <span class="ruby-value str">'3'</span>
+        <span class="ruby-identifier">node</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'n_colormap'</span>] = (<span class="ruby-identifier">colormap</span>.<span class="ruby-identifier">length</span><span class="ruby-operator">-</span><span class="ruby-value">1</span>).<span class="ruby-identifier">to_s</span>
+      <span class="ruby-keyword kw">end</span>
+
+      <span class="ruby-identifier">node</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'width'</span>] = <span class="ruby-identifier">image</span>.<span class="ruby-identifier">columns</span>.<span class="ruby-identifier">to_s</span>
+      <span class="ruby-identifier">node</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'height'</span>] = <span class="ruby-identifier">image</span>.<span class="ruby-identifier">rows</span>.<span class="ruby-identifier">to_s</span>
+      <span class="ruby-identifier">data1</span> = <span class="ruby-constant">LibXML</span><span class="ruby-operator">::</span><span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Node</span>.<span class="ruby-identifier">new</span>(<span class="ruby-value str">'data'</span>)
+      <span class="ruby-identifier">data2</span> = <span class="ruby-constant">LibXML</span><span class="ruby-operator">::</span><span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Node</span>.<span class="ruby-identifier">new</span>(<span class="ruby-value str">'data'</span>, <span class="ruby-constant">Base64</span>.<span class="ruby-identifier">encode64</span>(<span class="ruby-constant">Zlib</span><span class="ruby-operator">::</span><span class="ruby-constant">Deflate</span>.<span class="ruby-identifier">deflate</span>(<span class="ruby-identifier">data</span>)).<span class="ruby-identifier">gsub</span>(<span class="ruby-value str">&quot;\n&quot;</span>,<span class="ruby-value str">&quot;&quot;</span>))
+      <span class="ruby-identifier">data1</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">data2</span>
+      <span class="ruby-identifier">node</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">data1</span>
+      <span class="ruby-identifier">node</span>
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>
