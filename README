@@ -39,7 +39,7 @@ Usage
 First, Set constant SWFMILL in lib/swfmill.rb to path to swfmill-program for your environment.
 Then,
 
- $ gem install jewery
+ $ gem install jeweler
  $ rake build
  $ rake install
 
