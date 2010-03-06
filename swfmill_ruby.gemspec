@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["tmtysk"]
-  s.date = %q{2010-03-06}
+  s.date = %q{2010-03-07}
   s.description = %q{SwfmillRuby
 ===========
 
@@ -110,7 +110,6 @@ Copyright (c) 2008-2010 tmtysk.
      "doc/created.rid",
      "doc/files/lib/swf_rb.html",
      "doc/files/lib/swfmill_rb.html",
-     "doc/files/lib/swfmill_util_rb.html",
      "doc/files/sample/partialize_sample_rb.html",
      "doc/files/sample/regenerate_sample_rb.html",
      "doc/files/sample/repl_image_sample_rb.html",
@@ -124,7 +123,6 @@ Copyright (c) 2008-2010 tmtysk.
      "doc/rdoc-style.css",
      "lib/swf.rb",
      "lib/swfmill.rb",
-     "lib/swfmill_util.rb",
      "sample/data/3.gif",
      "sample/data/6.jpg",
      "sample/data/animation_partial.xml",

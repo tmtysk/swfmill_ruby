@@ -1,7 +1,5 @@
 require 'zlib'
 require 'base64'
-require 'rexml/document'
-require 'rubygems'
 require 'libxml'
 require 'rubygems'
 require 'RMagick'

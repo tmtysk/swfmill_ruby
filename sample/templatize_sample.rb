@@ -1,4 +1,4 @@
-require '../lib/swfmill_util'
+require '../lib/swfmill_ruby'
 require 'pp'
 
 ################################################################################
