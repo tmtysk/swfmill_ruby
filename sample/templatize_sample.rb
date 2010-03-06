@@ -5,9 +5,9 @@ require 'pp'
 # test to templatize Swf
 
 # initialize
-swf = SwfmillUtil::Swf.parseSwf(File.open("data/sample_original.swf").read)
+swf = SwfmillRuby::Swf.parseSwf(File.open("data/sample_original.swf").read)
 
-# check included movieclips (object_id => SwfmillUtil::Swf::DefineSprite)
+# check included movieclips (object_id => SwfmillRuby::Swf::DefineSprite)
 pp swf.movieclips.keys #=> ["8", "5"]
 
 # check included movieclip_ids by instance_name

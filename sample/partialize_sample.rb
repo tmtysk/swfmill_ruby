@@ -5,10 +5,10 @@ require 'pp'
 # test to partialize movieclip
 
 # initialize
-swf = SwfmillUtil::Swf.parseSwf(File.open("data/sample_original.swf").read)
-swf2 = SwfmillUtil::Swf.parseSwf(File.open("data/sample_original2.swf").read)
+swf = SwfmillRuby::Swf.parseSwf(File.open("data/sample_original.swf").read)
+swf2 = SwfmillRuby::Swf.parseSwf(File.open("data/sample_original2.swf").read)
 
-# check included movieclips (object_id => SwfmillUtil::Swf::DefineSprite)
+# check included movieclips (object_id => SwfmillRuby::Swf::DefineSprite)
 pp swf.movieclips.keys #=> ["8", "5"]
 pp swf2.movieclips.keys #=> ["6", "3"]
 

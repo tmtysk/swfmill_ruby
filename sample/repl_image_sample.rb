@@ -5,7 +5,7 @@ require 'pp'
 # test to replace images and texts
 
 # initialize
-swf = SwfmillUtil::Swf.parseSwf(File.open("data/sample_original.swf").read)
+swf = SwfmillRuby::Swf.parseSwf(File.open("data/sample_original.swf").read)
 
 # check included images (object_id => Magick::Image)
 pp swf.images #=> {"6"=> JPEG 176x208 176x208+0+0 DirectClass 8-bit 10kb, "3"=>  30x30 DirectClass 16-bit}

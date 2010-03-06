@@ -1,4 +1,4 @@
-module SwfmillUtil
+module SwfmillRuby
 
   # Movieclip Resource in SWF
   class DefineSprite
@@ -498,7 +498,7 @@ module SwfmillUtil
       new(swf, Swfmill.swf2xml(swf), false)
     end
 
-    # regenerate swf using SwfmillUtil::Swfmill.xml2swf
+    # regenerate swf using SwfmillRuby::Swfmill.xml2swf
     # Param:: adjustment: adjusting object_id in Swf if true
     # Return:: Swf binary string
     def regenerate(adjustment)

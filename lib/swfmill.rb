@@ -1,4 +1,4 @@
-module SwfmillUtil
+module SwfmillRuby
 
   SWFMILL = "/usr/local/bin/swfmill"
 
