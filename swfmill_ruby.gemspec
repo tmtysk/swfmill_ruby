@@ -107,7 +107,6 @@ Copyright (c) 2008-2010 tmtysk.
      "doc/classes/SwfmillRuby/Swfmill.html",
      "doc/classes/SwfmillRuby/Swfmill.src/M000001.html",
      "doc/classes/SwfmillRuby/Swfmill.src/M000002.html",
-     "doc/created.rid",
      "doc/files/lib/swf_rb.html",
      "doc/files/lib/swfmill_rb.html",
      "doc/files/lib/swfmill_ruby_rb.html",
@@ -121,7 +120,6 @@ Copyright (c) 2008-2010 tmtysk.
      "doc/fr_file_index.html",
      "doc/fr_method_index.html",
      "doc/index.html",
-     "doc/rdoc-style.css",
      "lib/swf.rb",
      "lib/swfmill.rb",
      "lib/swfmill_ruby.rb",
@@ -145,8 +143,7 @@ Copyright (c) 2008-2010 tmtysk.
      "sample/repl_image_sample.rb",
      "sample/repl_mc_sample.rb",
      "sample/swfmill_sample.rb",
-     "sample/templatize_sample.rb",
-     "swfmill_ruby.gemspec"
+     "sample/templatize_sample.rb"
   ]
   s.homepage = %q{http://github.com/tmtysk/swfmill_ruby}
   s.rdoc_options = ["--charset=UTF-8"]
