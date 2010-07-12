@@ -227,7 +227,7 @@ module SwfmillRuby
         end
         if (i+1) % image.rows == 0 then
           # padding
-          data += [0].pack("C") * (4-image.rows&3)
+          data += [0].pack("C") * (4-image.columns&3)
         end
       end
 
