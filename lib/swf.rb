@@ -56,7 +56,7 @@ module SwfmillRuby
           xpath_axes = "//"
           # making object_id_map
           if e.name == "DefineSprite" and e.attributes['objectID'] == root_define_sprite_id_from.to_s then
-            # inherit original object_id 
+            # inherit original object_id
             #object_id_map[e.attributes['objectID']] = root_define_sprite_id_to.to_s
             e.attributes['objectID'] = root_define_sprite_id_to.to_s
             xpath_axes = ".//"
@@ -127,7 +127,7 @@ module SwfmillRuby
         xml = ""
         # pickup referred DefineShape
         @xmldoc.find(".//*[self::DefineShape[@objectID='#{object_id}'] or self::DefineShape2[@objectID='#{object_id}'] or self::DefineShape3[@objectID='#{object_id}']]").each do |e1|
-          # pickup referred ClippedBitmap 
+          # pickup referred ClippedBitmap
           e1.find('.//ClippedBitmap[@objectID]').each do |e2|
             # pickup referred DefineBitsLossless, DefineBitsLossless2 and DefineBitsJPEG2
             @xmldoc.find(".//*[self::DefineBitsLossless[@objectID='#{e2.attributes['objectID']}'] or self::DefineBitsLossless2[@objectID='#{e2.attributes['objectID']}'] or self::DefineBitsJPEG2[@objectID='#{e2.attributes['objectID']}']]").each do |e3|
@@ -250,13 +250,13 @@ module SwfmillRuby
         data = colormap.inject("") { |r,c|
           opacity = (MaxRGB-c.opacity) >> ShiftDepth
           if opacity == 0 then
-            r += 
+            r +=
               [0].pack("C") +
               [0].pack("C") +
               [0].pack("C") +
               [opacity].pack("C")
           else
-            r += 
+            r +=
               [c.red >> ShiftDepth].pack("C") +
               [c.green >> ShiftDepth].pack("C") +
               [c.blue >> ShiftDepth].pack("C") +
@@ -391,7 +391,7 @@ module SwfmillRuby
         # format=3
         # added colormap before data_stream
         data = colormap.inject("") { |r,c|
-          r += 
+          r +=
             [c.red >> ShiftDepth].pack("C") +
             [c.green >> ShiftDepth].pack("C") +
             [c.blue >> ShiftDepth].pack("C")
@@ -551,7 +551,7 @@ module SwfmillRuby
                 xpath_axes = "//"
                 # making object_id_map
                 if e.name == "DefineSprite" and e.attributes['objectID'] == define_sprite.xmldoc.root.attributes['baseObjectID'] then
-                  # inherit original object_id 
+                  # inherit original object_id
                   e.attributes['objectID'] = object_id
                   xpath_axes = ".//"
                 else
